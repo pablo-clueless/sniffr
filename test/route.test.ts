@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { endpointKey, normalizeRoute, pathOf } from "../src/core/route.js";
 
 describe("pathOf", () => {

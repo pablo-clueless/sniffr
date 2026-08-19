@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { infer } from "../src/core/infer.js";
 import {
   BOOLEAN,

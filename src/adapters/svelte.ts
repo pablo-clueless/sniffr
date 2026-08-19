@@ -1,5 +1,5 @@
-import { sniffrStore } from "../runtime/store.js";
 import type { SniffrState } from "../runtime/store.js";
+import { sniffrStore } from "../runtime/store.js";
 import { mountOverlay } from "../ui/overlay.js";
 
 export type Readable<T> = {

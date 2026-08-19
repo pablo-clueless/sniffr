@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { analyze } from "../src/ci/analyze.js";
+
 import { isHar, samplesFromFixture, samplesFromHar } from "../src/ci/har.js";
-import { parseArgs, run } from "../src/ci/cli.js";
 import { renderJson, renderReport } from "../src/ci/report.js";
 import { loadSamples } from "../src/ci/sources.js";
+import { parseArgs, run } from "../src/ci/cli.js";
+import { analyze } from "../src/ci/analyze.js";
 
 const HAR = "test/fixtures/users.har";
 const SCHEMAS = "test/fixtures/schemas.mjs";

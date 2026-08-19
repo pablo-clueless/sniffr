@@ -27,7 +27,7 @@ export default defineConfig([
     platform: "browser",
     splitting: true,
     treeshake: true,
-    clean: true,
+    clean: false,
     dts: false,
     sourcemap: true,
     external: ["react", "react/jsx-runtime", "vue", "solid-js"],
