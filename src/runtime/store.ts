@@ -93,4 +93,4 @@ export const sniffrStore = createStore<SniffrState>((set, get) => ({
 }));
 
 export const endpoints = (state: SniffrState): readonly EndpointModel[] =>
-  Object.values(state.models).sort((a, b) => b.lastSeen - a.lastSeen);
+  Object.values(state.models).toSorted((a, b) => b.lastSeen - a.lastSeen);

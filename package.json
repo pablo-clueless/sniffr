@@ -49,14 +49,17 @@
   },
   "homepage": "https://github.com/pablo-clueless/sniffr#readme",
   "scripts": {
-    "typecheck": "tsc --noEmit",
     "build": "tsup && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "lint": "oxlint && node scripts/check-invariants.mjs",
+    "lint:fix": "oxlint --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "example": "tsx example/drift.ts",
-    "prepublishOnly": "npm run build",
-    "prettier:write": "prettier --write .",
-    "prettier:check": "prettier --check .",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix"
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "zustand": "^5.0.8"
@@ -76,13 +79,16 @@
   "devDependencies": {
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.2",
-    "eslint": "^10.8.1",
+    "@vitest/coverage-v8": "^4.1.11",
+    "jsdom": "^30.0.1",
+    "oxlint": "^1.79.0",
     "prettier": "^3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "react": "^19.2.0",
     "tsup": "^8.5.0",
     "tsx": "^4.20.6",
     "typescript": "^7.0.2",
+    "vitest": "^4.1.11",
     "vue": "^3.5.22",
     "zod": "^4.4.3"
   },

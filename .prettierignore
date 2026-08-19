@@ -26,3 +26,7 @@ dist-ssr
 # Environment variables
 .env
 .env.*
+
+# Generated
+pnpm-lock.yaml
+coverage
