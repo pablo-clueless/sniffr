@@ -134,6 +134,42 @@ containing `-` or `_`. If your ids carry separators, declare them explicitly:
 
 The overlay renders into a shadow root, so no CSS crosses in either direction.
 
+## CI mode
+
+The overlay catches drift while you work. The CLI catches it before merge — same
+engine, no browser:
+
+```bash
+# record a session in devtools, save as HAR, then:
+npx sniffr traffic.har --schemas ./src/schemas.mjs
+```
+
+```
+GET /api/users  (2 samples)
+  [BREAKING] $.data[].email      string -> string | null
+  [BREAKING] $.data[].role       "admin" | "member" -> "admin" | "owner"
+  [INFO    ] $.data[].nickname   string -> absent
+  [ADDITIVE] $.data[].avatarUrl  absent -> string
+
+2 breaking changes, 1 additive, 1 info across 2 endpoints
+```
+
+Exits `1` if anything breaking turned up, `0` otherwise — drop it straight into a
+pipeline. It also reads plain fixtures, so you can commit known-good responses:
+
+```json
+{ "url": "/api/users", "body": { "data": [] } }
+```
+
+| Option               | Meaning                                        |
+| -------------------- | ---------------------------------------------- |
+| `--schemas <module>` | module exporting `schemas` or a default export |
+| `--routes <a,b>`     | explicit route patterns                        |
+| `--json`             | machine-readable output                        |
+
+`--schemas` is loaded with dynamic `import()`. If your schemas are TypeScript,
+run the CLI under `tsx`, or point it at built JS.
+
 ## Requirements
 
 zod v4 or v3 — both are covered by tests, and sniffr picks the right reader from
