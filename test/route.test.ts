@@ -33,13 +33,40 @@ describe("normalizeRoute — params it collapses", () => {
   });
 });
 
-describe("normalizeRoute — known-broken behaviour (HANDOFF 8, task 2.2)", () => {
-  it("eats slugs, because OPAQUE matches any 21+ char token", () => {
-    expect(normalizeRoute("/api/posts/how-to-build-a-dev-tool")).toBe("/api/posts/:id");
+describe("normalizeRoute — slugs survive (task 2.2)", () => {
+  it("keeps a word slug intact", () => {
+    expect(normalizeRoute("/api/posts/how-to-build-a-dev-tool")).toBe(
+      "/api/posts/how-to-build-a-dev-tool",
+    );
+  });
+
+  it("keeps a slug that contains digits", () => {
+    expect(normalizeRoute("/api/posts/top-10-tips")).toBe("/api/posts/top-10-tips");
+  });
+
+  it("keeps a long single word, which carries no digit", () => {
+    expect(normalizeRoute("/api/tags/internationalization")).toBe("/api/tags/internationalization");
+  });
+
+  it("still collapses a separator-free opaque token", () => {
+    expect(normalizeRoute("/api/users/V1StGXR8Z5jdHi6Bmy0T")).toBe("/api/users/:id");
+  });
+
+  it("still collapses a ULID", () => {
+    expect(normalizeRoute("/api/events/01ARZ3NDEKTSV4RRFFQ69G5FAV")).toBe("/api/events/:id");
   });
 
   it("deliberately leaves 6 hex chars alone, below the HEX threshold", () => {
     expect(normalizeRoute("/api/users/019a7c")).toBe("/api/users/019a7c");
+  });
+
+  it("leaves a separator-bearing token alone — declare it in routes instead", () => {
+    expect(normalizeRoute("/api/users/V1StGXR8_Z5jdHi6BmyT")).toBe(
+      "/api/users/V1StGXR8_Z5jdHi6BmyT",
+    );
+    expect(normalizeRoute("/api/users/V1StGXR8_Z5jdHi6BmyT", ["/api/users/:id"])).toBe(
+      "/api/users/:id",
+    );
   });
 });
 
