@@ -151,6 +151,7 @@ peer at all.
 | `overlay`      | `true`   | set `false` to collect without mounting the panel    |
 | `target`       | `body`   | where to attach the overlay host                     |
 | `maxBodyBytes` | `524288` | responses larger than this are skipped               |
+| `persist`      | `false`  | remember observations across reloads (see below)     |
 
 Route params are guessed (`/users/123` -> `/users/:id`), but conservatively: word
 slugs like `/posts/how-to-build-a-dev-tool` are left intact, and so is any token
@@ -158,6 +159,21 @@ containing `-` or `_`. If your ids carry separators, declare them explicitly:
 `routes: ["/api/users/:id"]`.
 
 The overlay renders into a shadow root, so no CSS crosses in either direction.
+
+### Remembering across reloads
+
+```ts
+sniffr({ schemas, persist: true });
+```
+
+Without this, drift is only ever measured within one page session. With it, the
+observed model for each endpoint is written to localStorage and restored on the
+next load, so a field that changed since _yesterday_ still shows up.
+
+The storage key is a hash of your schemas: change one, and sniffr starts fresh
+rather than comparing against observations that were never checked against it.
+Pass any `{ getItem, setItem, removeItem }` object instead of `true` to store it
+somewhere else.
 
 ## CI mode
 
