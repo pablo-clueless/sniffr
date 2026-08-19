@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
@@ -16,5 +16,5 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true
   },
-  "include": ["src/**/*", "example/**/*", "tsup.config.ts"]
+  "include": ["src/**/*", "test/**/*", "example/**/*", "tsup.config.ts", "vitest.config.ts"]
 }
