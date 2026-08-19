@@ -93,6 +93,28 @@ export function SniffrProvider() {
 `sniffr()` returns early on the server, so importing it from shared code is safe —
 it will never patch the `fetch` Next.js instruments for caching.
 
+### Svelte
+
+No `svelte` import and no peer dependency — the store contract and actions are
+plain objects and functions:
+
+```svelte
+<script lang="ts">
+  import { sniffrState, overlay } from "@pablo_clueless/sniffr/svelte";
+</script>
+
+<div use:overlay />
+<p>{Object.keys($sniffrState.models).length} endpoints seen</p>
+```
+
+### Solid
+
+```tsx
+import { SniffrOverlay, useSniffr } from "@pablo_clueless/sniffr/solid";
+
+<SniffrOverlay />;
+```
+
 ### Vue
 
 ```vue
@@ -103,19 +125,22 @@ import { SniffrOverlay, useSniffr } from "@pablo_clueless/sniffr/vue";
 <template><SniffrOverlay /></template>
 ```
 
-`react` and `vue` are optional peers — a Vue user is never asked to install React,
-and the core entry pulls in neither.
+`react`, `vue` and `solid-js` are optional peers — a Vue user is never asked to
+install React, and the core entry pulls in none of them. The Svelte entry has no
+peer at all.
 
 ## API
 
-| Export                                        | Entry                        | What it does                                     |
-| --------------------------------------------- | ---------------------------- | ------------------------------------------------ |
-| `sniffr(options)`                             | `sniffr`                     | install interceptors + overlay, returns `stop()` |
-| `mountOverlay(target?)`                       | `sniffr`                     | mount the panel yourself, returns `unmount()`    |
-| `sniffrStore`, `endpoints`                    | `sniffr`                     | the observed model, one entry per endpoint       |
-| `intercept(options)`                          | `sniffr`                     | capture without any UI                           |
-| `fromZod`, `infer`, `merge`, `diff`, `render` | `sniffr`                     | the engine, usable headless in node              |
-| `<SniffrOverlay />`, `useSniffr`              | `sniffr/react`, `sniffr/vue` | framework bindings                               |
+| Export                                        | Entry                                        | What it does                                     |
+| --------------------------------------------- | -------------------------------------------- | ------------------------------------------------ |
+| `sniffr(options)`                             | `sniffr`                                     | install interceptors + overlay, returns `stop()` |
+| `mountOverlay(target?)`                       | `sniffr`                                     | mount the panel yourself, returns `unmount()`    |
+| `sniffrStore`, `endpoints`                    | `sniffr`                                     | the observed model, one entry per endpoint       |
+| `intercept(options)`                          | `sniffr`                                     | capture without any UI                           |
+| `fromZod`, `infer`, `merge`, `diff`, `render` | `sniffr`                                     | the engine, usable headless in node              |
+| `<SniffrOverlay />`, `useSniffr`              | `sniffr/react`, `sniffr/vue`, `sniffr/solid` | framework bindings                               |
+| `sniffrState`, `overlay`                      | `sniffr/svelte`                              | store contract + action, no svelte import        |
+| `analyze`, `renderReport`                     | `sniffr/ci`                                  | the headless pipeline                            |
 
 ### Options
 
@@ -126,16 +151,70 @@ and the core entry pulls in neither.
 | `overlay`      | `true`   | set `false` to collect without mounting the panel    |
 | `target`       | `body`   | where to attach the overlay host                     |
 | `maxBodyBytes` | `524288` | responses larger than this are skipped               |
+| `persist`      | `false`  | remember observations across reloads (see below)     |
 
-Route params are guessed (`/users/123` -> `/users/:id`). Slug-heavy paths should
-be declared explicitly via `routes`.
+Route params are guessed (`/users/123` -> `/users/:id`), but conservatively: word
+slugs like `/posts/how-to-build-a-dev-tool` are left intact, and so is any token
+containing `-` or `_`. If your ids carry separators, declare them explicitly:
+`routes: ["/api/users/:id"]`.
 
 The overlay renders into a shadow root, so no CSS crosses in either direction.
 
+### Remembering across reloads
+
+```ts
+sniffr({ schemas, persist: true });
+```
+
+Without this, drift is only ever measured within one page session. With it, the
+observed model for each endpoint is written to localStorage and restored on the
+next load, so a field that changed since _yesterday_ still shows up.
+
+The storage key is a hash of your schemas: change one, and sniffr starts fresh
+rather than comparing against observations that were never checked against it.
+Pass any `{ getItem, setItem, removeItem }` object instead of `true` to store it
+somewhere else.
+
+## CI mode
+
+The overlay catches drift while you work. The CLI catches it before merge — same
+engine, no browser:
+
+```bash
+# record a session in devtools, save as HAR, then:
+npx sniffr traffic.har --schemas ./src/schemas.mjs
+```
+
+```
+GET /api/users  (2 samples)
+  [BREAKING] $.data[].email      string -> string | null
+  [BREAKING] $.data[].role       "admin" | "member" -> "admin" | "owner"
+  [INFO    ] $.data[].nickname   string -> absent
+  [ADDITIVE] $.data[].avatarUrl  absent -> string
+
+2 breaking changes, 1 additive, 1 info across 2 endpoints
+```
+
+Exits `1` if anything breaking turned up, `0` otherwise — drop it straight into a
+pipeline. It also reads plain fixtures, so you can commit known-good responses:
+
+```json
+{ "url": "/api/users", "body": { "data": [] } }
+```
+
+| Option               | Meaning                                        |
+| -------------------- | ---------------------------------------------- |
+| `--schemas <module>` | module exporting `schemas` or a default export |
+| `--routes <a,b>`     | explicit route patterns                        |
+| `--json`             | machine-readable output                        |
+
+`--schemas` is loaded with dynamic `import()`. If your schemas are TypeScript,
+run the CLI under `tsx`, or point it at built JS.
+
 ## Requirements
 
-zod v4 (v3 is supported structurally but untested), and any bundler that can read
-ESM. sniffr reads zod's `_def` structurally and never imports zod, so it adds
+zod v4 or v3 — both are covered by tests, and sniffr picks the right reader from
+the schema's internals. Any bundler that can read ESM. sniffr reads zod's `_def` structurally and never imports zod, so it adds
 nothing to your dependency tree.
 
 ## License

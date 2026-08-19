@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { assignable, diff, isBreaking } from "../src/core/diff.js";
 import type { ChangeCode } from "../src/core/diff.js";
 import { infer } from "../src/core/infer.js";

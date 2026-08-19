@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { diff } from "../src/core/diff.js";
+
 import { fromZod } from "../src/core/from-zod.js";
+import type { Shape } from "../src/core/shape.js";
+import { UNKNOWN } from "../src/core/shape.js";
 import { infer } from "../src/core/infer.js";
 import { merge } from "../src/core/merge.js";
-import { UNKNOWN } from "../src/core/shape.js";
-import type { Shape } from "../src/core/shape.js";
+import { diff } from "../src/core/diff.js";
 
 const UserList = z.object({
   data: z.array(

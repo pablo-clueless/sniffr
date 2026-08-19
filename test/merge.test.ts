@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { ENUM_CARDINALITY_CAP, merge } from "../src/core/merge.js";
 import {
   INTEGER,
