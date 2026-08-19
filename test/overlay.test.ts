@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
+
+import type { OverlayHandle } from "../src/ui/overlay.js";
 import { sniffrStore } from "../src/runtime/store.js";
 import { mountOverlay } from "../src/ui/overlay.js";
-import type { OverlayHandle } from "../src/ui/overlay.js";
 
 let overlay: OverlayHandle | null = null;
 

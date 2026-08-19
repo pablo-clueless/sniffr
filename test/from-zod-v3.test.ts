@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { z } from "zod-v3";
 import { z as z4 } from "zod";
+import { z } from "zod-v3";
+
 import { fromZod, isOptionalSchema } from "../src/core/from-zod.js";
 import { render } from "../src/core/shape.js";
 

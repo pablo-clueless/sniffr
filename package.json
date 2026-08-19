@@ -64,6 +64,7 @@
   },
   "homepage": "https://github.com/pablo-clueless/sniffr#readme",
   "scripts": {
+    "prebuild": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "tsup && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

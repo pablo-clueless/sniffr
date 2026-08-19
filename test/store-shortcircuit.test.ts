@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+
 import type * as DiffModule from "../src/core/diff.js";
 
 vi.mock("../src/core/diff.js", async (importOriginal) => {

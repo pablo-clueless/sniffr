@@ -1,7 +1,8 @@
 import { createSignal, onCleanup } from "solid-js";
 import type { Accessor } from "solid-js";
-import { sniffrStore } from "../runtime/store.js";
+
 import type { SniffrState } from "../runtime/store.js";
+import { sniffrStore } from "../runtime/store.js";
 import { mountOverlay } from "../ui/overlay.js";
 
 export const useSniffr = (): Accessor<SniffrState> => {

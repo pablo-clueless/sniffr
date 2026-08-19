@@ -93,6 +93,28 @@ export function SniffrProvider() {
 `sniffr()` returns early on the server, so importing it from shared code is safe —
 it will never patch the `fetch` Next.js instruments for caching.
 
+### Svelte
+
+No `svelte` import and no peer dependency — the store contract and actions are
+plain objects and functions:
+
+```svelte
+<script lang="ts">
+  import { sniffrState, overlay } from "@pablo_clueless/sniffr/svelte";
+</script>
+
+<div use:overlay />
+<p>{Object.keys($sniffrState.models).length} endpoints seen</p>
+```
+
+### Solid
+
+```tsx
+import { SniffrOverlay, useSniffr } from "@pablo_clueless/sniffr/solid";
+
+<SniffrOverlay />;
+```
+
 ### Vue
 
 ```vue
@@ -103,19 +125,22 @@ import { SniffrOverlay, useSniffr } from "@pablo_clueless/sniffr/vue";
 <template><SniffrOverlay /></template>
 ```
 
-`react` and `vue` are optional peers — a Vue user is never asked to install React,
-and the core entry pulls in neither.
+`react`, `vue` and `solid-js` are optional peers — a Vue user is never asked to
+install React, and the core entry pulls in none of them. The Svelte entry has no
+peer at all.
 
 ## API
 
-| Export                                        | Entry                        | What it does                                     |
-| --------------------------------------------- | ---------------------------- | ------------------------------------------------ |
-| `sniffr(options)`                             | `sniffr`                     | install interceptors + overlay, returns `stop()` |
-| `mountOverlay(target?)`                       | `sniffr`                     | mount the panel yourself, returns `unmount()`    |
-| `sniffrStore`, `endpoints`                    | `sniffr`                     | the observed model, one entry per endpoint       |
-| `intercept(options)`                          | `sniffr`                     | capture without any UI                           |
-| `fromZod`, `infer`, `merge`, `diff`, `render` | `sniffr`                     | the engine, usable headless in node              |
-| `<SniffrOverlay />`, `useSniffr`              | `sniffr/react`, `sniffr/vue` | framework bindings                               |
+| Export                                        | Entry                                        | What it does                                     |
+| --------------------------------------------- | -------------------------------------------- | ------------------------------------------------ |
+| `sniffr(options)`                             | `sniffr`                                     | install interceptors + overlay, returns `stop()` |
+| `mountOverlay(target?)`                       | `sniffr`                                     | mount the panel yourself, returns `unmount()`    |
+| `sniffrStore`, `endpoints`                    | `sniffr`                                     | the observed model, one entry per endpoint       |
+| `intercept(options)`                          | `sniffr`                                     | capture without any UI                           |
+| `fromZod`, `infer`, `merge`, `diff`, `render` | `sniffr`                                     | the engine, usable headless in node              |
+| `<SniffrOverlay />`, `useSniffr`              | `sniffr/react`, `sniffr/vue`, `sniffr/solid` | framework bindings                               |
+| `sniffrState`, `overlay`                      | `sniffr/svelte`                              | store contract + action, no svelte import        |
+| `analyze`, `renderReport`                     | `sniffr/ci`                                  | the headless pipeline                            |
 
 ### Options
 

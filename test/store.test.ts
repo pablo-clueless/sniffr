@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
+
 import { endpoints, sniffrStore } from "../src/runtime/store.js";
 import type { Capture } from "../src/runtime/store.js";
 

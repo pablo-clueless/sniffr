@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
+
 import { fromZod, isOptionalSchema } from "../src/core/from-zod.js";
 import { render } from "../src/core/shape.js";
 
