@@ -161,7 +161,7 @@ containing `-` or `_`. If your ids carry separators, declare them explicitly:
 The overlay is a pill in the bottom-left corner — red when something breaking is
 observed, amber when the only drift is additive. Click it for a docked panel with
 the endpoint list on the left and the changes on the right; drag its top edge to
-resize, `Escape` to close. It renders into a shadow root, so no CSS crosses in
+resize, filter by route, `Escape` to close. It reopens the way you left it. It renders into a shadow root, so no CSS crosses in
 either direction.
 
 ### Request bodies

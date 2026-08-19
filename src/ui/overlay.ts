@@ -1,6 +1,7 @@
-import type { Change } from "../core/diff.js";
-import { endpoints, sniffrStore } from "../runtime/store.js";
 import type { EndpointModel, SniffrState } from "../runtime/store.js";
+import { readPreferences, writePreferences } from "./preferences.js";
+import { endpoints, sniffrStore } from "../runtime/store.js";
+import type { Change } from "../core/diff.js";
 
 export type OverlayHandle = {
   readonly unmount: () => void;
@@ -116,6 +117,18 @@ const STYLES = `
 .brand { font-weight: 700; letter-spacing: 0.06em; text-transform: lowercase; }
 .summary { color: var(--muted); font-family: var(--mono); font-size: 11px; }
 .spacer { flex: 1; }
+.filter {
+  all: unset;
+  width: 190px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--raised);
+  color: var(--text);
+  font: 11px/1.4 var(--mono);
+}
+.filter::placeholder { color: #6b7480; }
+.filter:focus-visible { border-color: var(--amber); }
 .close {
   all: unset;
   cursor: pointer;
@@ -305,7 +318,19 @@ export const mountOverlay = (target?: Element): OverlayHandle => {
   const close = element("button", "close", "✕");
   close.type = "button";
   close.setAttribute("aria-label", "Close sniffr");
-  header.append(element("span", "brand", "sniffr"), summary, element("span", "spacer"), close);
+  const filter = document.createElement("input");
+  filter.className = "filter";
+  filter.type = "search";
+  filter.placeholder = "Filter routes…";
+  filter.setAttribute("aria-label", "Filter routes");
+
+  header.append(
+    element("span", "brand", "sniffr"),
+    summary,
+    element("span", "spacer"),
+    filter,
+    close,
+  );
 
   const list = element("div", "list");
   const detail = element("div", "detail");
@@ -316,9 +341,18 @@ export const mountOverlay = (target?: Element): OverlayHandle => {
   root.append(style, pill, panel);
   (target ?? document.body).append(host);
 
-  let open = false;
-  let height = DEFAULT_PANEL_HEIGHT;
+  const preferences = readPreferences({
+    open: false,
+    height: DEFAULT_PANEL_HEIGHT,
+    filter: "",
+  });
+
+  let open = preferences.open;
+  let height = preferences.height;
   let selected: string | null = null;
+  filter.value = preferences.filter;
+
+  const remember = (): void => writePreferences({ open, height, filter: filter.value });
 
   const maxHeight = (): number =>
     Math.max(MIN_PANEL_HEIGHT, Math.round((globalThis.innerHeight || 800) * 0.9));
@@ -329,9 +363,14 @@ export const mountOverlay = (target?: Element): OverlayHandle => {
   };
 
   const render = (state: SniffrState): void => {
-    const models = withChanges(state);
-    const breaking = countBy(models, "breaking");
-    const additive = countBy(models, "additive");
+    const all = withChanges(state);
+    const query = filter.value.trim().toLowerCase();
+    const models = query
+      ? all.filter((model) => `${model.method} ${model.route}`.toLowerCase().includes(query))
+      : all;
+
+    const breaking = countBy(all, "breaking");
+    const additive = countBy(all, "additive");
     const total = breaking + additive;
 
     pill.dataset.state = breaking > 0 ? "breaking" : additive > 0 ? "additive" : "clean";
@@ -343,14 +382,22 @@ export const mountOverlay = (target?: Element): OverlayHandle => {
     summary.textContent =
       total === 0
         ? "no drift detected"
-        : `${breaking} breaking · ${additive} additive · ${models.length} endpoints`;
+        : `${breaking} breaking · ${additive} additive · ${all.length} endpoints`;
 
     if (selected && !models.some((model) => model.key === selected)) selected = null;
     selected ??= models[0]?.key ?? null;
 
     list.replaceChildren(
       ...(models.length === 0
-        ? [element("div", "empty", "No drift yet. Responses appear here as they arrive.")]
+        ? [
+            element(
+              "div",
+              "empty",
+              query
+                ? `Nothing matches “${filter.value.trim()}”.`
+                : "No drift yet. Responses appear here as they arrive.",
+            ),
+          ]
         : models.map((model) => renderEndpointButton(model, model.key === selected))),
     );
 
@@ -369,8 +416,14 @@ export const mountOverlay = (target?: Element): OverlayHandle => {
     open = next;
     panel.hidden = !open;
     if (open) applyHeight(height);
+    remember();
     render(sniffrStore.getState());
   };
+
+  filter.addEventListener("input", () => {
+    remember();
+    render(sniffrStore.getState());
+  });
 
   pill.addEventListener("click", () => setOpen(true));
   close.addEventListener("click", () => setOpen(false));
@@ -395,6 +448,7 @@ export const mountOverlay = (target?: Element): OverlayHandle => {
   };
 
   const onUp = (): void => {
+    if (dragFrom) remember();
     dragFrom = null;
     resizer.dataset.dragging = "false";
   };
@@ -408,6 +462,9 @@ export const mountOverlay = (target?: Element): OverlayHandle => {
   document.addEventListener("mousemove", onMove);
   document.addEventListener("mouseup", onUp);
   document.addEventListener("keydown", onKeyDown);
+
+  panel.hidden = !open;
+  if (open) applyHeight(height);
 
   const unsubscribe = sniffrStore.subscribe(render);
   render(sniffrStore.getState());
