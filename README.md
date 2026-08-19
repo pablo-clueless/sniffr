@@ -127,15 +127,17 @@ and the core entry pulls in neither.
 | `target`       | `body`   | where to attach the overlay host                     |
 | `maxBodyBytes` | `524288` | responses larger than this are skipped               |
 
-Route params are guessed (`/users/123` -> `/users/:id`). Slug-heavy paths should
-be declared explicitly via `routes`.
+Route params are guessed (`/users/123` -> `/users/:id`), but conservatively: word
+slugs like `/posts/how-to-build-a-dev-tool` are left intact, and so is any token
+containing `-` or `_`. If your ids carry separators, declare them explicitly:
+`routes: ["/api/users/:id"]`.
 
 The overlay renders into a shadow root, so no CSS crosses in either direction.
 
 ## Requirements
 
-zod v4 (v3 is supported structurally but untested), and any bundler that can read
-ESM. sniffr reads zod's `_def` structurally and never imports zod, so it adds
+zod v4 or v3 — both are covered by tests, and sniffr picks the right reader from
+the schema's internals. Any bundler that can read ESM. sniffr reads zod's `_def` structurally and never imports zod, so it adds
 nothing to your dependency tree.
 
 ## License

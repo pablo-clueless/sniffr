@@ -57,9 +57,12 @@ export const sniffrStore = createStore<SniffrState>((set, get) => ({
     const key = endpointKey(capture.method, route);
     const previous = models[key];
 
-    const observed = merge(previous?.observed ?? UNKNOWN, infer(capture.body));
+    const seen = previous?.observed ?? UNKNOWN;
+    const observed = merge(seen, infer(capture.body));
     const expected = schemas[key] ?? schemas[route] ?? previous?.expected ?? null;
-    const changes = expected ? diff(expected, observed) : [];
+
+    const settled = previous !== undefined && observed === seen && expected === previous.expected;
+    const changes = settled ? previous.changes : expected ? diff(expected, observed) : [];
 
     set({
       models: {

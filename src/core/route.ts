@@ -1,7 +1,13 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const OPAQUE = /^[A-Za-z0-9._~-]{21,}$/;
 const HEX = /^[0-9a-fA-F]{8,}$/;
 const NUMERIC = /^\d+$/;
+
+// A slug and an opaque id are both long tokens; the difference is that a slug
+// carries word separators and a token does not. Requiring both a digit and a
+// letter, with no separator anywhere, keeps `how-to-build-a-dev-tool` and
+// `top-10-tips` intact at the cost of missing a separator-bearing nanoid —
+// which is the trade the tool wants: guessing wrong is worse than asking.
+const OPAQUE = /^(?=.*\d)(?=.*[A-Za-z])[A-Za-z0-9]{20,}$/;
 
 export const PARAM = ":id";
 
