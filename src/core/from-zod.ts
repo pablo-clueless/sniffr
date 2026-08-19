@@ -144,6 +144,17 @@ const enumValues = (def: Def): LiteralValue[] => {
   return [];
 };
 
+// A schema entry is either a schema (the response, as it always was) or
+// { request, response }. Both sides are optional in the object form.
+export const schemaSides = (value: unknown): { request?: unknown; response?: unknown } => {
+  if (isSchema(value)) return { response: value };
+  if (value && typeof value === "object") {
+    const pair = value as { request?: unknown; response?: unknown };
+    if (pair.request !== undefined || pair.response !== undefined) return pair;
+  }
+  return { response: value };
+};
+
 export const isOptionalSchema = (schema: unknown): boolean => {
   const kind = kindOf(schema);
   if (!kind) return false;

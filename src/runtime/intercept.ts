@@ -47,12 +47,39 @@ const interceptFetch = (options: InterceptOptions): (() => void) => {
 
   let active = true;
 
-  const observe = async (response: Response, method: string, url: string): Promise<void> => {
+  const requestBodyOf = async (
+    init: RequestInit | undefined,
+    clone: Request | null,
+  ): Promise<unknown> => {
+    try {
+      if (typeof init?.body === "string") return parse(init.body, limit);
+      if (clone) return parse(await clone.text(), limit);
+    } catch {
+      /* a request body is a nice-to-have; never let reading it matter */
+    }
+    return undefined;
+  };
+
+  const observe = async (
+    response: Response,
+    method: string,
+    url: string,
+    init: RequestInit | undefined,
+    clone: Request | null,
+  ): Promise<void> => {
     if (!isJson(response.headers.get("content-type"))) return;
     if (tooLarge(response.headers.get("content-length"), limit)) return;
     const body = parse(await response.clone().text(), limit);
     if (body === undefined) return;
-    options.onCapture({ method, url, status: response.status, body, at: Date.now() });
+
+    options.onCapture({
+      method,
+      url,
+      status: response.status,
+      body,
+      requestBody: await requestBodyOf(init, clone),
+      at: Date.now(),
+    });
   };
 
   globalThis.fetch = function patchedFetch(
@@ -60,11 +87,22 @@ const interceptFetch = (options: InterceptOptions): (() => void) => {
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> {
+    // the clone has to happen before fetch consumes the body, but reading it
+    // happens off the caller's path
+    let clone: Request | null = null;
+    try {
+      if (active && typeof Request !== "undefined" && input instanceof Request && input.body) {
+        clone = input.clone();
+      }
+    } catch {
+      clone = null;
+    }
+
     const pending = original.call(this as never, input, init);
     if (!active) return pending;
     return pending.then((response) => {
       try {
-        void observe(response, methodOf(input, init), urlOf(input)).catch(() => {});
+        void observe(response, methodOf(input, init), urlOf(input), init, clone).catch(() => {});
       } catch {
         /* observation must never break the host request */
       }
@@ -78,7 +116,7 @@ const interceptFetch = (options: InterceptOptions): (() => void) => {
   };
 };
 
-type XhrRequest = { readonly method: string; readonly url: string };
+type XhrRequest = { readonly method: string; readonly url: string; readonly body?: unknown };
 
 const interceptXhr = (options: InterceptOptions): (() => void) => {
   const limit = options.maxBodyBytes ?? MAX_BODY_BYTES;
@@ -110,6 +148,18 @@ const interceptXhr = (options: InterceptOptions): (() => void) => {
     ...args: Parameters<typeof originalSend>
   ): void {
     try {
+      const opened = requests.get(this);
+      if (opened) {
+        requests.set(this, {
+          ...opened,
+          body: typeof args[0] === "string" ? parse(args[0], limit) : undefined,
+        });
+      }
+    } catch {
+      /* ignore */
+    }
+
+    try {
       this.addEventListener("load", () => {
         if (!active) return;
         try {
@@ -125,6 +175,7 @@ const interceptXhr = (options: InterceptOptions): (() => void) => {
             url: request.url,
             status: this.status,
             body,
+            requestBody: request.body,
             at: Date.now(),
           });
         } catch {

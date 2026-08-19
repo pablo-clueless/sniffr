@@ -3,6 +3,7 @@ export type Sample = {
   readonly url: string;
   readonly status: number;
   readonly body: unknown;
+  readonly requestBody?: unknown;
 };
 
 const isJsonMime = (mime: unknown): boolean =>
@@ -33,7 +34,11 @@ export const samplesFromHar = (value: unknown): Sample[] => {
   for (const entry of entries) {
     if (!entry || typeof entry !== "object") continue;
     const { request, response } = entry as {
-      request?: { method?: unknown; url?: unknown };
+      request?: {
+        method?: unknown;
+        url?: unknown;
+        postData?: { mimeType?: unknown; text?: unknown };
+      };
       response?: {
         status?: unknown;
         content?: { mimeType?: unknown; text?: unknown; encoding?: unknown };
@@ -46,11 +51,18 @@ export const samplesFromHar = (value: unknown): Sample[] => {
     const body = parseJson(decode(content.text, content.encoding));
     if (body === undefined) continue;
 
+    const post = request?.postData;
+    const requestBody =
+      isJsonMime(post?.mimeType) && typeof post?.text === "string"
+        ? parseJson(post.text)
+        : undefined;
+
     samples.push({
       method: typeof request?.method === "string" ? request.method : "GET",
       url: typeof request?.url === "string" ? request.url : "/",
       status: typeof response?.status === "number" ? response.status : 200,
       body,
+      requestBody,
     });
   }
 
@@ -61,7 +73,13 @@ export const samplesFromFixture = (value: unknown): Sample[] => {
   if (Array.isArray(value)) return value.flatMap((item) => samplesFromFixture(item));
   if (!value || typeof value !== "object") return [];
 
-  const fixture = value as { url?: unknown; method?: unknown; status?: unknown; body?: unknown };
+  const fixture = value as {
+    url?: unknown;
+    method?: unknown;
+    status?: unknown;
+    body?: unknown;
+    requestBody?: unknown;
+  };
   if (typeof fixture.url !== "string") return [];
 
   return [
@@ -70,6 +88,7 @@ export const samplesFromFixture = (value: unknown): Sample[] => {
       url: fixture.url,
       status: typeof fixture.status === "number" ? fixture.status : 200,
       body: fixture.body,
+      requestBody: fixture.requestBody,
     },
   ];
 };
