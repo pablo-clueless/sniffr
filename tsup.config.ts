@@ -13,20 +13,36 @@ const preserveUseClient = async (): Promise<void> => {
   );
 };
 
-export default defineConfig({
-  entry: {
-    index: "src/index.ts",
-    react: "src/adapters/react.tsx",
-    vue: "src/adapters/vue.ts",
+export default defineConfig([
+  {
+    entry: {
+      index: "src/index.ts",
+      react: "src/adapters/react.tsx",
+      vue: "src/adapters/vue.ts",
+      svelte: "src/adapters/svelte.ts",
+      solid: "src/adapters/solid.ts",
+    },
+    format: ["esm"],
+    target: "es2022",
+    platform: "browser",
+    splitting: true,
+    treeshake: true,
+    clean: true,
+    dts: false,
+    sourcemap: true,
+    external: ["react", "react/jsx-runtime", "vue", "solid-js"],
+    onSuccess: preserveUseClient,
   },
-  format: ["esm"],
-  target: "es2022",
-  platform: "browser",
-  splitting: true,
-  treeshake: true,
-  clean: true,
-  dts: false,
-  sourcemap: true,
-  external: ["react", "react/jsx-runtime", "vue"],
-  onSuccess: preserveUseClient,
-});
+  {
+    entry: { ci: "src/ci/cli.ts" },
+    format: ["esm"],
+    target: "node20",
+    platform: "node",
+    splitting: false,
+    treeshake: true,
+    clean: false,
+    dts: false,
+    sourcemap: true,
+    banner: { js: "#!/usr/bin/env node" },
+  },
+]);
