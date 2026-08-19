@@ -8,6 +8,9 @@ import { UNKNOWN } from "../core/shape.js";
 import { infer } from "../core/infer.js";
 import { merge } from "../core/merge.js";
 import { diff } from "../core/diff.js";
+import { hashSchemas } from "../core/serialize.js";
+import { load, save } from "./persist.js";
+import type { PersistedModel, StorageLike } from "./persist.js";
 
 export type Capture = {
   readonly method: string;
@@ -32,10 +35,29 @@ export type SniffrState = {
   readonly models: Readonly<Record<string, EndpointModel>>;
   readonly schemas: Readonly<Record<string, Shape>>;
   readonly routes: readonly string[];
+  readonly storage: StorageLike | null;
+  readonly schemaHash: string;
   readonly record: (capture: Capture) => void;
   readonly registerSchemas: (schemas: Readonly<Record<string, unknown>>) => void;
   readonly setRoutes: (routes: readonly string[]) => void;
+  readonly persistTo: (storage: StorageLike) => void;
   readonly clear: () => void;
+};
+
+const persistable = (
+  models: Readonly<Record<string, EndpointModel>>,
+): Record<string, PersistedModel> => {
+  const out: Record<string, PersistedModel> = {};
+  for (const [key, model] of Object.entries(models)) {
+    out[key] = {
+      method: model.method,
+      route: model.route,
+      observed: model.observed,
+      samples: model.samples,
+      lastSeen: model.lastSeen,
+    };
+  }
+  return out;
 };
 
 const schemaKey = (raw: string, routes: readonly string[]): string => {
@@ -50,6 +72,8 @@ export const sniffrStore = createStore<SniffrState>((set, get) => ({
   models: {},
   schemas: {},
   routes: [],
+  storage: null,
+  schemaHash: hashSchemas({}),
 
   record: (capture) => {
     const { models, schemas, routes } = get();
@@ -64,21 +88,24 @@ export const sniffrStore = createStore<SniffrState>((set, get) => ({
     const settled = previous !== undefined && observed === seen && expected === previous.expected;
     const changes = settled ? previous.changes : expected ? diff(expected, observed) : [];
 
-    set({
-      models: {
-        ...models,
-        [key]: {
-          key,
-          method: capture.method.toUpperCase(),
-          route,
-          expected,
-          observed,
-          changes,
-          samples: (previous?.samples ?? 0) + 1,
-          lastSeen: capture.at,
-        },
+    const next = {
+      ...models,
+      [key]: {
+        key,
+        method: capture.method.toUpperCase(),
+        route,
+        expected,
+        observed,
+        changes,
+        samples: (previous?.samples ?? 0) + 1,
+        lastSeen: capture.at,
       },
-    });
+    };
+
+    set({ models: next });
+
+    const { storage, schemaHash } = get();
+    if (storage && !settled) save(storage, schemaHash, persistable(next));
   },
 
   registerSchemas: (input) => {
@@ -87,7 +114,32 @@ export const sniffrStore = createStore<SniffrState>((set, get) => ({
     for (const [raw, schema] of Object.entries(input)) {
       next[schemaKey(raw, routes)] = fromZod(schema);
     }
-    set({ schemas: next });
+    set({ schemas: next, schemaHash: hashSchemas(next) });
+  },
+
+  persistTo: (storage) => {
+    const { models, schemas, schemaHash } = get();
+    const stored = load(storage, schemaHash);
+    const hydrated: Record<string, EndpointModel> = { ...models };
+
+    for (const [key, entry] of Object.entries(stored)) {
+      const current = hydrated[key];
+      const observed = current ? merge(current.observed, entry.observed) : entry.observed;
+      const expected = current?.expected ?? schemas[key] ?? schemas[entry.route] ?? null;
+
+      hydrated[key] = {
+        key,
+        method: entry.method,
+        route: entry.route,
+        expected,
+        observed,
+        changes: expected ? diff(expected, observed) : [],
+        samples: (current?.samples ?? 0) + entry.samples,
+        lastSeen: Math.max(current?.lastSeen ?? 0, entry.lastSeen),
+      };
+    }
+
+    set({ storage, models: hydrated });
   },
 
   setRoutes: (routes) => set({ routes: [...routes] }),
