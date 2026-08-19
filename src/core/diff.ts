@@ -14,8 +14,13 @@ export type ChangeCode =
   | "field.unobserved"
   | "union.branch.unobserved";
 
+export type Side = "request" | "response";
+
 export type Change = {
   readonly path: string;
+  // absent means response; only request diffs are tagged, so a response change
+  // stays byte-identical to what it was before request bodies existed
+  readonly side?: Side;
   readonly code: ChangeCode;
   readonly severity: Severity;
   readonly expected: string;
@@ -154,6 +159,9 @@ export const diff = (expected: Shape, observed: Shape, path = "$"): Change[] => 
     },
   ];
 };
+
+export const asRequest = (changes: readonly Change[]): Change[] =>
+  changes.map((change) => ({ ...change, side: "request" as const }));
 
 export const isBreaking = (changes: readonly Change[]): boolean =>
   changes.some((c) => c.severity === "breaking");

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>sniffr overlay</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font:
+          14px/1.6 ui-sans-serif,
+          system-ui,
+          sans-serif;
+        background: #f6f7f9;
+        color: #1f2328;
+        padding: 40px;
+      }
+      main {
+        max-width: 640px;
+      }
+      code {
+        background: #eaecef;
+        padding: 2px 5px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>sniffr overlay</h1>
+      <p>
+        A host page for eyeballing the overlay. Run
+        <code>npm run build</code> first, then serve this directory and open this file.
+      </p>
+      <p>The pill sits bottom-left. Click it to open the panel; drag its top edge to resize.</p>
+    </main>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "zustand/vanilla": "https://esm.sh/zustand@5/vanilla",
+          "zod": "https://esm.sh/zod@4"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import { mountOverlay, sniffrStore } from "../dist/index.js";
+      import { z } from "zod";
+
+      sniffrStore.getState().registerSchemas({
+        "GET /api/users": z.object({
+          data: z.array(
+            z.object({
+              id: z.number().int(),
+              email: z.string(),
+              role: z.enum(["admin", "member"]),
+              nickname: z.string().optional(),
+            }),
+          ),
+        }),
+        "GET /api/orders": z.object({ total: z.number().int(), currency: z.string() }),
+        "POST /api/users": {
+          request: z.object({ email: z.string(), role: z.enum(["admin", "member"]) }),
+          response: z.object({ id: z.number().int() }),
+        },
+      });
+
+      const record = (method, url, body, requestBody) =>
+        sniffrStore
+          .getState()
+          .record({ method, url, status: 200, body, requestBody, at: Date.now() });
+
+      record("GET", "/api/users", {
+        data: [
+          { id: 1, email: "ada@example.com", role: "admin", avatarUrl: "https://cdn/1.png" },
+          { id: 2, email: null, role: "owner", avatarUrl: "https://cdn/2.png" },
+        ],
+      });
+      record("GET", "/api/orders", { total: 12, currency: "NGN", refundedAt: null });
+      record("POST", "/api/users", { id: 3 }, { email: "grace@example.com", role: "owner" });
+
+      mountOverlay();
+    </script>
+  </body>
+</html>
