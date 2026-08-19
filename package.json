@@ -1,5 +1,5 @@
 {
-  "name": "sniffr",
+  "name": "@pablo_clueless/sniffr",
   "version": "0.1.0",
   "description": "Watch live API responses, model what they actually return, and diff that against your zod schemas.",
   "license": "MIT",
@@ -29,6 +29,9 @@
     "README.md",
     "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "api",
     "schema",
@@ -37,6 +40,14 @@
     "breaking-changes",
     "devtools"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pablo-clueless/sniffr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pablo-clueless/sniffr/issues"
+  },
+  "homepage": "https://github.com/pablo-clueless/sniffr#readme",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsup && tsc -p tsconfig.build.json",
@@ -63,6 +74,7 @@
     }
   },
   "devDependencies": {
+    "@types/node": "^26.2.0",
     "@types/react": "^19.2.2",
     "eslint": "^10.8.1",
     "prettier": "^3.9.6",

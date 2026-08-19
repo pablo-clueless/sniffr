@@ -1,4 +1,4 @@
-# sniffr
+# @pablo_clueless/sniffr
 
 > Watch live API responses in the browser, model what each endpoint _actually_
 > returns, and diff that against your zod schemas. Breaking changes surface in an
@@ -23,16 +23,16 @@ Same type with a different value produces nothing.
 ## Install
 
 ```bash
-npm i -D sniffr
+npm i -D @pablo_clueless/sniffr
 ```
 
 ## Use
 
 ```ts
-import { sniffr } from "sniffr";
+import { sniffr } from "@pablo_clueless/sniffr";
 import { z } from "zod";
 
-if (import.meta.env.DEV) {
+if (process.env.NODE_ENV !== "production") {
   sniffr({
     schemas: {
       "GET /api/users": z.object({ data: z.array(User) }),
@@ -44,21 +44,60 @@ if (import.meta.env.DEV) {
 
 That patches `fetch` and `XMLHttpRequest`, models every JSON response, and mounts
 the overlay. Interceptors never throw into your app — a failure inside sniffr
-returns your response untouched.
+returns your response untouched. On the server `sniffr()` is a no-op, so it never
+touches a server `fetch`.
 
 ### React
 
 ```tsx
-import { SniffrOverlay, useSniffr } from "sniffr/react";
+import { SniffrOverlay, useSniffr } from "@pablo_clueless/sniffr/react";
 
 <SniffrOverlay />;
 ```
+
+### Next.js
+
+`sniffr/react` ships `"use client"`, so `<SniffrOverlay />` can be rendered
+straight from a server component — put it in your root layout behind a dev check:
+
+```tsx
+// app/layout.tsx
+import { SniffrOverlay } from "@pablo_clueless/sniffr/react";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        {children}
+        {process.env.NODE_ENV !== "production" && <SniffrOverlay />}
+      </body>
+    </html>
+  );
+}
+```
+
+Registering schemas and installing the interceptors has to happen in the browser,
+so call `sniffr()` from a client component:
+
+```tsx
+"use client";
+import { useEffect } from "react";
+import { sniffr } from "@pablo_clueless/sniffr";
+
+export function SniffrProvider() {
+  useEffect(() => sniffr({ overlay: false, schemas: { "GET /api/users": Users } }).stop, []);
+  return null;
+}
+```
+
+`sniffr()` returns early on the server, so importing it from shared code is safe —
+it will never patch the `fetch` Next.js instruments for caching.
 
 ### Vue
 
 ```vue
 <script setup lang="ts">
-import { SniffrOverlay, useSniffr } from "sniffr/vue";
+import { SniffrOverlay, useSniffr } from "@pablo_clueless/sniffr/vue";
 </script>
 
 <template><SniffrOverlay /></template>
@@ -89,7 +128,7 @@ and the core entry pulls in neither.
 | `maxBodyBytes` | `524288` | responses larger than this are skipped               |
 
 Route params are guessed (`/users/123` -> `/users/:id`). Slug-heavy paths should
-be declared explicitly via `routes` — see `HANDOFF.md` §8.
+be declared explicitly via `routes`.
 
 The overlay renders into a shadow root, so no CSS crosses in either direction.
 
@@ -101,4 +140,4 @@ nothing to your dependency tree.
 
 ## License
 
-MIT
+[License](./LICENSE)
