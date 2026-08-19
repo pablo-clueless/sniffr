@@ -1,16 +1,19 @@
 {
   "compilerOptions": {
     "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "outDir": "dist",
-    "rootDir": "src",
+    "jsx": "react-jsx",
     "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": false,
+    "noEmit": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "declaration": false,
-    "sourceMap": false
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "example/**/*", "tsup.config.ts"]
 }
