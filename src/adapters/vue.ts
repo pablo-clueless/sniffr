@@ -1,3 +1,4 @@
+import type { ShallowRef } from "vue";
 import {
   defineComponent,
   getCurrentScope,
@@ -7,11 +8,11 @@ import {
   onScopeDispose,
   shallowRef,
 } from "vue";
-import type { ShallowRef } from "vue";
-import { sniffrStore } from "../runtime/store.js";
+
 import type { SniffrState } from "../runtime/store.js";
-import { mountOverlay } from "../ui/overlay.js";
 import type { OverlayHandle } from "../ui/overlay.js";
+import { sniffrStore } from "../runtime/store.js";
+import { mountOverlay } from "../ui/overlay.js";
 
 export const useSniffr = (): ShallowRef<SniffrState> => {
   const state = shallowRef(sniffrStore.getState());
