@@ -1,3 +1,4 @@
+import type { Change } from "../core/diff.js";
 import type { Analysis } from "./analyze.js";
 
 const TAG: Record<string, string> = {
@@ -6,6 +7,9 @@ const TAG: Record<string, string> = {
   info: "INFO    ",
 };
 
+const label = (change: Change): string =>
+  change.side === "request" ? `req ${change.path}` : change.path;
+
 export const plural = (count: number, noun: string): string =>
   `${count} ${noun}${count === 1 ? "" : "s"}`;
 
@@ -13,7 +17,7 @@ export const renderReport = (analysis: Analysis): string => {
   const lines: string[] = [];
 
   for (const endpoint of analysis.endpoints) {
-    if (endpoint.expected === null) {
+    if (endpoint.expected === null && endpoint.expectedRequest === null) {
       lines.push(
         `${endpoint.method} ${endpoint.route}  (${plural(endpoint.samples, "sample")}, no schema)`,
       );
@@ -27,10 +31,10 @@ export const renderReport = (analysis: Analysis): string => {
     }
 
     lines.push(`${endpoint.method} ${endpoint.route}  (${plural(endpoint.samples, "sample")})`);
-    const width = Math.max(...endpoint.changes.map((change) => change.path.length));
+    const width = Math.max(...endpoint.changes.map((change) => label(change).length));
     for (const change of endpoint.changes) {
       lines.push(
-        `  [${TAG[change.severity]}] ${change.path.padEnd(width + 2)}${change.expected} -> ${change.observed}`,
+        `  [${TAG[change.severity]}] ${label(change).padEnd(width + 2)}${change.expected} -> ${change.observed}`,
       );
     }
   }

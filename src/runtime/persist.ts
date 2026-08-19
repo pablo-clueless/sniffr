@@ -16,6 +16,7 @@ export type PersistedModel = {
   readonly method: string;
   readonly route: string;
   readonly observed: Shape;
+  readonly request: Shape | null;
   readonly samples: number;
   readonly lastSeen: number;
 };
@@ -63,6 +64,8 @@ export const load = (
       method: typeof entry.method === "string" ? entry.method : "GET",
       route: typeof entry.route === "string" ? entry.route : key,
       observed,
+      request:
+        entry.request === null || entry.request === undefined ? null : parseShape(entry.request),
       samples: typeof entry.samples === "number" ? entry.samples : 0,
       lastSeen: typeof entry.lastSeen === "number" ? entry.lastSeen : 0,
     };
