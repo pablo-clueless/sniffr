@@ -11,6 +11,9 @@ importers:
         specifier: ^5.0.8
         version: 5.0.15(@types/react@19.2.18)(react@19.2.8)
     devDependencies:
+      "@types/node":
+        specifier: ^26.2.0
+        version: 26.2.0
       "@types/react":
         specifier: ^19.2.2
         version: 19.2.18
@@ -876,6 +879,12 @@ packages:
     resolution:
       {
         integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==,
+      }
+
+  "@types/node@26.2.0":
+    resolution:
+      {
+        integrity: sha512-5IviulTZeRNp2vAJ514cc/HUlY5nZ9fCbq9DMyC52BrhFZACo3nI0R7qBxhQmo/d27NFe96ur/b7Wwxklda+kg==,
       }
 
   "@types/react@19.2.18":
@@ -1898,6 +1907,12 @@ packages:
         integrity: sha512-JFNbkD1Svwe0KvGi8GOeLcP4kAWQ609twvCdcHxq1oSL8svv39ZuSvajcD8B+5D0eL4+s1Is2D/O6KN3qcTeRA==,
       }
 
+  undici-types@8.3.0:
+    resolution:
+      {
+        integrity: sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==,
+      }
+
   uri-js@4.4.1:
     resolution:
       {
@@ -2277,6 +2292,10 @@ snapshots:
   "@types/estree@1.0.9": {}
 
   "@types/json-schema@7.0.15": {}
+
+  "@types/node@26.2.0":
+    dependencies:
+      undici-types: 8.3.0
 
   "@types/react@19.2.18":
     dependencies:
@@ -2880,6 +2899,8 @@ snapshots:
       "@typescript/typescript-win32-x64": 7.0.2
 
   ufo@1.6.4: {}
+
+  undici-types@8.3.0: {}
 
   uri-js@4.4.1:
     dependencies:

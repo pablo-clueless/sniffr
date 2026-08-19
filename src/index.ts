@@ -14,7 +14,11 @@ export type SniffrHandle = {
   readonly stop: () => void;
 };
 
+const NOOP: SniffrHandle = { stop: () => {} };
+
 export const sniffr = (options: SniffrOptions = {}): SniffrHandle => {
+  if (typeof window === "undefined") return NOOP;
+
   const { setRoutes, registerSchemas } = sniffrStore.getState();
   if (options.routes) setRoutes(options.routes);
   if (options.schemas) registerSchemas(options.schemas);
