@@ -125,6 +125,7 @@ describe("persist — storage round trip", () => {
         method: "GET",
         route: "/api/users/:id",
         observed: object({ id: field(INTEGER) }),
+        request: null,
         samples: 3,
         lastSeen: 100,
       },
@@ -137,7 +138,7 @@ describe("persist — storage round trip", () => {
   it("keys by the schema hash, so a changed schema does not read stale data", () => {
     const storage = new FakeStorage();
     save(storage, "abc", {
-      a: { method: "GET", route: "/a", observed: STRING, samples: 1, lastSeen: 1 },
+      a: { method: "GET", route: "/a", observed: STRING, request: null, samples: 1, lastSeen: 1 },
     });
     expect(load(storage, "different")).toEqual({});
   });
@@ -145,10 +146,10 @@ describe("persist — storage round trip", () => {
   it("drops blobs written under other schema hashes", () => {
     const storage = new FakeStorage();
     save(storage, "old", {
-      a: { method: "GET", route: "/a", observed: STRING, samples: 1, lastSeen: 1 },
+      a: { method: "GET", route: "/a", observed: STRING, request: null, samples: 1, lastSeen: 1 },
     });
     save(storage, "new", {
-      a: { method: "GET", route: "/a", observed: STRING, samples: 1, lastSeen: 1 },
+      a: { method: "GET", route: "/a", observed: STRING, request: null, samples: 1, lastSeen: 1 },
     });
 
     expect(storage.keys()).toEqual([storageKey("new")]);
@@ -171,7 +172,14 @@ describe("persist — storage round trip", () => {
     const fields: Record<string, ReturnType<typeof field>> = {};
     for (let i = 0; i < 4000; i += 1) fields[`field_${i}_with_a_long_name`] = field(STRING);
     const big = {
-      a: { method: "GET", route: "/a", observed: object(fields), samples: 1, lastSeen: 1 },
+      a: {
+        method: "GET",
+        route: "/a",
+        observed: object(fields),
+        request: null,
+        samples: 1,
+        lastSeen: 1,
+      },
     };
 
     expect(JSON.stringify(big).length).toBeGreaterThan(MAX_STORED_BYTES);

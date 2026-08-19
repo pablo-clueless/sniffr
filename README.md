@@ -158,7 +158,35 @@ slugs like `/posts/how-to-build-a-dev-tool` are left intact, and so is any token
 containing `-` or `_`. If your ids carry separators, declare them explicitly:
 `routes: ["/api/users/:id"]`.
 
-The overlay renders into a shadow root, so no CSS crosses in either direction.
+The overlay is a pill in the bottom-left corner — red when something breaking is
+observed, amber when the only drift is additive. Click it for a docked panel with
+the endpoint list on the left and the changes on the right; drag its top edge to
+resize, `Escape` to close. It renders into a shadow root, so no CSS crosses in
+either direction.
+
+### Request bodies
+
+Give an endpoint both sides and sniffr checks what you send as well as what comes
+back:
+
+```ts
+sniffr({
+  schemas: {
+    "GET /api/users": UserList,
+    "POST /api/users": { request: CreateUser, response: User },
+  },
+});
+```
+
+A bare schema still means the response, so nothing changes for endpoints you have
+already declared. Request findings are marked `req` in the overlay and the CLI:
+
+```
+[BREAKING] req $.role      "admin" | "member" -> "admin" | "owner"
+[ADDITIVE] req $.nickname  absent -> string
+```
+
+Only JSON bodies are read — `FormData`, blobs and URL-encoded bodies are ignored.
 
 ### Remembering across reloads
 
