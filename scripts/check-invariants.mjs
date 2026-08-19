@@ -10,7 +10,10 @@ const RULES = [
     applies: (file) => file.startsWith("src/core/"),
     forbid: [
       { pattern: /from\s+["']\.\.\/(runtime|ui|adapters)\//, why: "imports outside core/" },
-      { pattern: /\bfrom\s+["'](zod|react|vue)["']/, why: "imports zod or a framework" },
+      {
+        pattern: /\bfrom\s+["'](zod|react|vue|solid-js|svelte)["']/,
+        why: "imports zod or a framework",
+      },
       {
         pattern: /(?<![.\w])(document|window|localStorage|XMLHttpRequest)\s*[.[]/,
         why: "touches the DOM",
@@ -21,7 +24,9 @@ const RULES = [
     id: "HANDOFF 7.2",
     what: "only adapters/ may import a framework",
     applies: (file) => file.startsWith(SRC) && !file.startsWith("src/adapters/"),
-    forbid: [{ pattern: /\bfrom\s+["'](react|vue)["']/, why: "imports react or vue" }],
+    forbid: [
+      { pattern: /\bfrom\s+["'](react|vue|solid-js|svelte)["']/, why: "imports a framework" },
+    ],
   },
   {
     id: "HANDOFF 7.4",

@@ -22,7 +22,22 @@
       "types": "./dist/adapters/vue.d.ts",
       "import": "./dist/vue.js"
     },
+    "./svelte": {
+      "types": "./dist/adapters/svelte.d.ts",
+      "import": "./dist/svelte.js"
+    },
+    "./solid": {
+      "types": "./dist/adapters/solid.d.ts",
+      "import": "./dist/solid.js"
+    },
+    "./ci": {
+      "types": "./dist/ci/cli.d.ts",
+      "import": "./dist/ci.js"
+    },
     "./package.json": "./package.json"
+  },
+  "bin": {
+    "sniffr": "./dist/ci.js"
   },
   "files": [
     "dist",
@@ -49,6 +64,7 @@
   },
   "homepage": "https://github.com/pablo-clueless/sniffr#readme",
   "scripts": {
+    "prebuild": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "tsup && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -66,13 +82,17 @@
   },
   "peerDependencies": {
     "react": ">=18",
-    "vue": ">=3.3"
+    "vue": ">=3.3",
+    "solid-js": ">=1.8"
   },
   "peerDependenciesMeta": {
     "react": {
       "optional": true
     },
     "vue": {
+      "optional": true
+    },
+    "solid-js": {
       "optional": true
     }
   },
@@ -85,12 +105,14 @@
     "prettier": "^3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "react": "^19.2.0",
+    "solid-js": "^1.9.15",
     "tsup": "^8.5.0",
     "tsx": "^4.20.6",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11",
     "vue": "^3.5.22",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "zod-v3": "npm:zod@^3.25.76"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

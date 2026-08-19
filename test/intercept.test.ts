@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+
 import { intercept } from "../src/runtime/intercept.js";
 import type { Capture } from "../src/runtime/store.js";
 
