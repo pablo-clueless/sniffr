@@ -34,6 +34,7 @@ const openPanel = () => {
 
 beforeEach(() => {
   document.body.innerHTML = "";
+  localStorage.clear();
   sniffrStore.setState({ models: {}, schemas: {}, requestSchemas: {}, routes: [], storage: null });
   sniffrStore.getState().registerSchemas({
     "GET /api/users": z.object({ email: z.string(), nick: z.string().optional() }),
@@ -262,6 +263,99 @@ describe("overlay — adjustable height", () => {
     pill().click();
 
     expect(panel().style.height).toBe(`${DEFAULT_PANEL_HEIGHT + 100}px`);
+  });
+});
+
+describe("overlay — remembered panel state", () => {
+  it("reopens in the state it was left in", () => {
+    openPanel();
+    overlay!.unmount();
+
+    overlay = mountOverlay();
+    expect(panel().hidden).toBe(false);
+    expect(pill().hidden).toBe(true);
+  });
+
+  it("restores the height it was dragged to", () => {
+    openPanel();
+    pick(".resizer")!.dispatchEvent(new MouseEvent("mousedown", { clientY: 500, bubbles: true }));
+    document.dispatchEvent(new MouseEvent("mousemove", { clientY: 400 }));
+    document.dispatchEvent(new MouseEvent("mouseup"));
+    overlay!.unmount();
+
+    overlay = mountOverlay();
+    expect(panel().style.height).toBe(`${DEFAULT_PANEL_HEIGHT + 100}px`);
+  });
+
+  it("starts closed and default-sized with nothing remembered", () => {
+    overlay = mountOverlay();
+    expect(panel().hidden).toBe(true);
+    expect(pill().hidden).toBe(false);
+  });
+
+  it("survives unreadable preferences", () => {
+    localStorage.setItem("sniffr:ui:v1", "{not json");
+    overlay = mountOverlay();
+    expect(panel().hidden).toBe(true);
+  });
+});
+
+describe("overlay — filtering", () => {
+  const type = (value: string) => {
+    const input = pick(".filter") as HTMLInputElement;
+    input.value = value;
+    input.dispatchEvent(new Event("input"));
+  };
+
+  beforeEach(() => {
+    openPanel();
+    record({ email: null }, "/api/users");
+    record({ total: null }, "/api/orders");
+  });
+
+  it("narrows the list", () => {
+    expect(items()).toHaveLength(2);
+    type("orders");
+    expect(items()).toHaveLength(1);
+    expect(items()[0]!.textContent).toContain("/api/orders");
+  });
+
+  it("matches on the method too", () => {
+    type("get /api/users");
+    expect(items()).toHaveLength(1);
+  });
+
+  it("says so when nothing matches", () => {
+    type("zzz");
+    expect(items()).toHaveLength(0);
+    expect(pick(".empty")!.textContent).toContain("zzz");
+  });
+
+  it("keeps the header counts global while filtering", () => {
+    type("orders");
+    expect(pick(".summary")!.textContent).toContain("2 endpoints");
+  });
+
+  it("keeps the same input element across re-renders, so typing is not interrupted", () => {
+    const before = pick(".filter");
+    type("or");
+    record({ email: null }, "/api/users");
+    expect(pick(".filter")).toBe(before);
+  });
+
+  it("remembers the filter", () => {
+    type("orders");
+    overlay!.unmount();
+
+    overlay = mountOverlay();
+    expect((pick(".filter") as HTMLInputElement).value).toBe("orders");
+    expect(items()).toHaveLength(1);
+  });
+
+  it("restores the full list when cleared", () => {
+    type("orders");
+    type("");
+    expect(items()).toHaveLength(2);
   });
 });
 
