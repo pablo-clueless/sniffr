@@ -17,19 +17,26 @@ Usage:
 Options:
   --schemas <module>   module exporting \`schemas\` or a default export:
                        { "GET /api/users": zodSchema }
+                       TypeScript works if \`tsx\` is installed.
   --routes <patterns>  comma-separated explicit route patterns
+  --fail-on <level>    breaking (default) | additive | none
   --json               emit JSON instead of the text report
   -h, --help           show this
 
 Exit codes:
-  0  no breaking changes
-  1  at least one breaking change
+  0  nothing at or above the --fail-on level
+  1  something at or above it
   2  nothing to check, or bad usage`;
+
+export type FailOn = "breaking" | "additive" | "none";
+
+const FAIL_LEVELS = new Set<string>(["breaking", "additive", "none"]);
 
 export type ParsedArgs = {
   readonly paths: readonly string[];
   readonly schemas?: string;
   readonly routes: readonly string[];
+  readonly failOn: FailOn;
   readonly json: boolean;
   readonly help: boolean;
 };
@@ -38,6 +45,7 @@ export const parseArgs = (argv: readonly string[]): ParsedArgs => {
   const paths: string[] = [];
   let schemas: string | undefined;
   let routes: string[] = [];
+  let failOn: FailOn = "breaking";
   let json = false;
   let help = false;
 
@@ -51,15 +59,41 @@ export const parseArgs = (argv: readonly string[]): ParsedArgs => {
     } else if (arg === "--routes") {
       index += 1;
       routes = (argv[index] ?? "").split(",").filter(Boolean);
+    } else if (arg === "--fail-on") {
+      index += 1;
+      const level = argv[index] ?? "";
+      if (!FAIL_LEVELS.has(level)) {
+        throw new Error(`--fail-on must be breaking, additive or none (got "${level}")`);
+      }
+      failOn = level as FailOn;
     } else if (arg.startsWith("-")) {
       throw new Error(`unknown option: ${arg}`);
     } else paths.push(arg);
   }
 
-  return { paths, schemas, routes, json, help };
+  return { paths, schemas, routes, failOn, json, help };
+};
+
+// A schema module is usually TypeScript. Node cannot import that on its own, so
+// borrow the host project's tsx if it has one and say something useful if not.
+const registerTypeScript = async (): Promise<boolean> => {
+  try {
+    const tsx = (await import("tsx/esm/api")) as { register: () => unknown };
+    tsx.register();
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 const loadSchemas = async (specifier: string): Promise<Record<string, unknown>> => {
+  if (/\.[cm]?tsx?$/.test(specifier) && !(await registerTypeScript())) {
+    throw new Error(
+      `${specifier} is TypeScript, which needs a loader.
+Install tsx (npm i -D tsx), or point --schemas at compiled JavaScript.`,
+    );
+  }
+
   const module = (await import(pathToFileURL(resolve(specifier)).href)) as {
     schemas?: Record<string, unknown>;
     default?: Record<string, unknown>;
@@ -69,6 +103,12 @@ const loadSchemas = async (specifier: string): Promise<Record<string, unknown>> 
     throw new Error(`${specifier} must export \`schemas\` or a default export object`);
   }
   return schemas;
+};
+
+const failed = (analysis: { breaking: number; additive: number }, failOn: FailOn): boolean => {
+  if (failOn === "none") return false;
+  if (failOn === "additive") return analysis.breaking + analysis.additive > 0;
+  return analysis.breaking > 0;
 };
 
 export const run = async (argv: readonly string[]): Promise<number> => {
@@ -96,7 +136,7 @@ export const run = async (argv: readonly string[]): Promise<number> => {
     console.log(`read ${plural(samples.length, "response")} from ${plural(read.length, "file")}`);
   }
 
-  return analysis.breaking > 0 ? 1 : 0;
+  return failed(analysis, args.failOn) ? 1 : 0;
 };
 
 const isDirectInvocation = (): boolean => {
