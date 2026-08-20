@@ -18,19 +18,34 @@ pnpm --dir ../.. build
 
 ## What it demonstrates
 
-Three buttons, all hitting `/api/users`, served by a mock API in
-`vite.config.ts`:
+Four buttons, all hitting the real
+[jsonplaceholder](https://jsonplaceholder.typicode.com) API. No mock server, so
+this needs a network connection.
 
-| Button           | What it sends                               |
-| ---------------- | ------------------------------------------- |
-| matches          | a response the schema describes             |
-| drifted response | `email: null`, a new `role`, an extra field |
-| drifted request  | a `POST` body with a role outside the enum  |
+The schemas in `src/sniffr.ts` contain a mistake a real codebase would make:
 
-The clean and drifted responses are the **same endpoint**, so sniffr merges them
-into one model — which is why `email` ends up as `string | null` rather than just
-`null`, and why `role` accumulates all three values. That merging is the whole
-reason the tool reports drift rather than a request log.
+```ts
+const Geo = z.object({
+  lat: z.number(), // jsonplaceholder actually sends "-37.3159"
+  lng: z.number(),
+});
+```
+
+Click **GET /users** and sniffr says so immediately:
+
+```
+[BREAKING] $[].address.geo.lat  number -> string
+[BREAKING] $[].address.geo.lng  number -> string
+```
+
+The other buttons show the rest of the engine:
+
+| Button         | What it shows                                                          |
+| -------------- | ---------------------------------------------------------------------- |
+| `GET /users`   | the `geo` mistake, on an array response                                |
+| `GET /users/1` | route normalisation — a separate model, keyed `/users/:id`             |
+| `GET /posts`   | clean, and 100 rows widen `title` past the enum cap to `string`        |
+| `POST /posts`  | a request body sending `userId` as a string; marked `req` in the panel |
 
 ## How it is wired
 

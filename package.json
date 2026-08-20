@@ -1,6 +1,6 @@
 {
   "name": "@pablo_clueless/sniffr",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Watch live API responses, model what they actually return, and diff that against your zod schemas.",
   "license": "MIT",
   "author": "smsnmicheal",
@@ -19,23 +19,23 @@
       "import": "./dist/index.js"
     },
     "./react": {
-      "types": "./dist/adapters/react.d.ts",
+      "types": "./dist/react.d.ts",
       "import": "./dist/react.js"
     },
     "./vue": {
-      "types": "./dist/adapters/vue.d.ts",
+      "types": "./dist/vue.d.ts",
       "import": "./dist/vue.js"
     },
     "./svelte": {
-      "types": "./dist/adapters/svelte.d.ts",
+      "types": "./dist/svelte.d.ts",
       "import": "./dist/svelte.js"
     },
     "./solid": {
-      "types": "./dist/adapters/solid.d.ts",
+      "types": "./dist/solid.d.ts",
       "import": "./dist/solid.js"
     },
     "./ci": {
-      "types": "./dist/ci/cli.d.ts",
+      "types": "./dist/ci.d.ts",
       "import": "./dist/ci.js"
     },
     "./package.json": "./package.json"
@@ -69,7 +69,7 @@
   "homepage": "https://github.com/pablo-clueless/sniffr#readme",
   "scripts": {
     "prebuild": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
-    "build": "tsup && tsc -p tsconfig.build.json",
+    "build": "tsdown && node scripts/postbuild.mjs && node scripts/check-bundle.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -111,7 +111,6 @@
     "react": "^19.2.0",
     "solid-js": "^1.9.15",
     "tsdown": "^0.22.14",
-    "tsup": "^8.5.0",
     "tsx": "^4.20.6",
     "typescript": "^7.0.2",
     "valibot": "^1.4.2",
