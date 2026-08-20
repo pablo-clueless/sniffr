@@ -1,4 +1,5 @@
 import type { Field, LiteralValue, Shape } from "./shape.js";
+import { isShape } from "./shape.js";
 import {
   BOOLEAN,
   INTEGER,
@@ -143,6 +144,9 @@ const enumValues = (def: Def): LiteralValue[] => {
   }
   return [];
 };
+
+// Any adapter can hand in an already-compiled Shape; only zod needs reading.
+export const toShape = (value: unknown): Shape => (isShape(value) ? value : fromZod(value));
 
 // A schema entry is either a schema (the response, as it always was) or
 // { request, response }. Both sides are optional in the object form.

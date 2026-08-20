@@ -1,12 +1,12 @@
 # @pablo_clueless/sniffr
 
 > Watch live API responses in the browser, model what each endpoint _actually_
-> returns, and diff that against your zod schemas. Breaking changes surface in an
-> overlay the moment a response drifts.
+> returns, and diff that against your zod schemas — or your OpenAPI spec.
+> Breaking changes surface in an overlay the moment a response drifts.
 
-TypeScript types don't exist at runtime. sniffr compiles both sides — your zod
-schemas and the JSON actually coming back — into one structural IR, then diffs
-them:
+TypeScript types don't exist at runtime. sniffr compiles both sides — the
+contract you declared and the JSON actually coming back — into one structural IR,
+then diffs them:
 
 ```
 capture -> normalize route -> infer shape -> merge into running model -> diff vs expected -> classify
@@ -138,6 +138,7 @@ peer at all.
 | `sniffrStore`, `endpoints`                    | `sniffr`                                     | the observed model, one entry per endpoint       |
 | `intercept(options)`                          | `sniffr`                                     | capture without any UI                           |
 | `fromZod`, `infer`, `merge`, `diff`, `render` | `sniffr`                                     | the engine, usable headless in node              |
+| `fromOpenApi`, `schemasFromOpenApi`           | `sniffr`                                     | compile an OpenAPI 3.x document instead of zod   |
 | `<SniffrOverlay />`, `useSniffr`              | `sniffr/react`, `sniffr/vue`, `sniffr/solid` | framework bindings                               |
 | `sniffrState`, `overlay`                      | `sniffr/svelte`                              | store contract + action, no svelte import        |
 | `analyze`, `renderReport`                     | `sniffr/ci`                                  | the headless pipeline                            |
@@ -161,8 +162,8 @@ containing `-` or `_`. If your ids carry separators, declare them explicitly:
 The overlay is a pill in the bottom-left corner — red when something breaking is
 observed, amber when the only drift is additive. Click it for a docked panel with
 the endpoint list on the left and the changes on the right; drag its top edge to
-resize, filter by route, `Escape` to close. It reopens the way you left it. It renders into a shadow root, so no CSS crosses in
-either direction.
+resize, filter by route, `Escape` to close. It reopens the way you left it, and
+renders into a shadow root, so no CSS crosses in either direction.
 
 ### Request bodies
 
@@ -244,10 +245,25 @@ than a cryptic loader error.
 Use `--fail-on additive` to stop the build when the API starts sending fields you
 don't describe, or `--fail-on none` to report without ever failing.
 
+### No zod? Use your OpenAPI spec
+
+```bash
+npx sniffr traffic.har --openapi ./openapi.json
+```
+
+sniffr compiles the spec straight into the same internal shape it compiles zod
+into, so you get identical findings without writing a single schema. `$ref`,
+`allOf`/`oneOf`/`anyOf`, `enum`, `const`, `nullable` (3.0) and `type: [..., "null"]`
+(3.1) are all understood, and `/users/{id}` is matched up with `/users/:id`
+automatically. Request bodies come from `requestBody`.
+
+JSON specs only — convert YAML first. You can also import `schemasFromOpenApi`
+and pass the result to `sniffr({ schemas })` in the browser.
+
 ## Requirements
 
 zod v4 or v3 — both are covered by tests, and sniffr picks the right reader from
-the schema's internals. Any bundler that can read ESM. sniffr reads zod's `_def` structurally and never imports zod, so it adds
+the schema's internals. Or no zod at all, if you have an OpenAPI spec. Any bundler that can read ESM. sniffr reads zod's `_def` structurally and never imports zod, so it adds
 nothing to your dependency tree.
 
 ## License
