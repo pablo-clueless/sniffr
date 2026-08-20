@@ -29,6 +29,7 @@ npm i -D @pablo_clueless/sniffr
 ## Use
 
 ```ts
+// sniffr.config.ts
 import { sniffr } from "@pablo_clueless/sniffr";
 import { z } from "zod";
 
@@ -41,6 +42,10 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 ```
+
+There is **no config file**. sniffr is a function you call from your own code —
+nothing to scaffold, nothing to generate, no `sniffr.config.ts`. The snippet above
+is the entire setup.
 
 That patches `fetch` and `XMLHttpRequest`, models every JSON response, and mounts
 the overlay. Interceptors never throw into your app — a failure inside sniffr
@@ -139,6 +144,7 @@ peer at all.
 | `intercept(options)`                          | `sniffr`                                     | capture without any UI                           |
 | `fromZod`, `infer`, `merge`, `diff`, `render` | `sniffr`                                     | the engine, usable headless in node              |
 | `fromOpenApi`, `schemasFromOpenApi`           | `sniffr`                                     | compile an OpenAPI 3.x document instead of zod   |
+| `fromValibot`, `toShape`                      | `sniffr`                                     | valibot, or whatever a schema turns out to be    |
 | `<SniffrOverlay />`, `useSniffr`              | `sniffr/react`, `sniffr/vue`, `sniffr/solid` | framework bindings                               |
 | `sniffrState`, `overlay`                      | `sniffr/svelte`                              | store contract + action, no svelte import        |
 | `analyze`, `renderReport`                     | `sniffr/ci`                                  | the headless pipeline                            |
@@ -162,8 +168,17 @@ containing `-` or `_`. If your ids carry separators, declare them explicitly:
 The overlay is a pill in the bottom-left corner — red when something breaking is
 observed, amber when the only drift is additive. Click it for a docked panel with
 the endpoint list on the left and the changes on the right; drag its top edge to
-resize, filter by route, `Escape` to close. It reopens the way you left it, and
-renders into a shadow root, so no CSS crosses in either direction.
+resize, filter by route, `Escape` to close. The header also cycles the theme
+between auto, light and dark — auto follows `prefers-color-scheme`. Drag the pill
+to any corner and it stays there. It reopens
+the way you left it, and renders into a shadow root, so no CSS crosses in either
+direction.
+
+The panel is set in Fira Code, fetched from Google Fonts with `display=swap`. If
+your CSP blocks it, the fallback stack takes over and nothing else changes.
+
+Runnable examples live in `example/`: `react.html`, `vue.html` and
+`overlay.html`. Run `npm run build`, serve the repo root, and open one.
 
 ### Request bodies
 
@@ -231,6 +246,11 @@ pipeline. It also reads plain fixtures, so you can commit known-good responses:
 { "url": "/api/users", "body": { "data": [] } }
 ```
 
+The CLI has no config file either. `--schemas` points at a module **you already
+have** — wherever your zod or valibot schemas live — and `--openapi` points at a
+spec you already publish. If neither exists, sniffr still runs and reports the
+shapes it observed.
+
 | Option               | Meaning                                        |
 | -------------------- | ---------------------------------------------- |
 | `--schemas <module>` | module exporting `schemas` or a default export |
@@ -245,7 +265,27 @@ than a cryptic loader error.
 Use `--fail-on additive` to stop the build when the API starts sending fields you
 don't describe, or `--fail-on none` to report without ever failing.
 
-### No zod? Use your OpenAPI spec
+### valibot
+
+Pass valibot schemas anywhere zod schemas go — sniffr works out which it is
+getting:
+
+```ts
+import * as v from "valibot";
+
+import type { User } from "@/types";
+
+sniffr({
+  schemas: {
+    "GET /api/users": v.object({ data: v.array(User) }),
+  },
+});
+```
+
+Neither library is a dependency: sniffr reads their internals structurally, so
+nothing is added to your bundle either way.
+
+### No schemas at all? Use your OpenAPI spec
 
 ```bash
 npx sniffr traffic.har --openapi ./openapi.json
@@ -262,8 +302,9 @@ and pass the result to `sniffr({ schemas })` in the browser.
 
 ## Requirements
 
-zod v4 or v3 — both are covered by tests, and sniffr picks the right reader from
-the schema's internals. Or no zod at all, if you have an OpenAPI spec. Any bundler that can read ESM. sniffr reads zod's `_def` structurally and never imports zod, so it adds
+zod (v4 or v3), valibot, or an OpenAPI 3.x document — all three are covered by
+tests, and sniffr picks the right reader from what you hand it. None of them is a
+dependency; each is read structurally. Any bundler that can read ESM. sniffr reads zod's `_def` structurally and never imports zod, so it adds
 nothing to your dependency tree.
 
 ## License

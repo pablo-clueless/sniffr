@@ -1,5 +1,4 @@
 import type { Field, LiteralValue, Shape } from "./shape.js";
-import { isShape } from "./shape.js";
 import {
   BOOLEAN,
   INTEGER,
@@ -68,14 +67,14 @@ const WRAPPER_KINDS = new Set([
   "nonoptional",
 ]);
 
-const isSchema = (value: unknown): boolean => {
+export const isZodSchema = (value: unknown): boolean => {
   if (!value || typeof value !== "object") return false;
   const candidate = value as { _def?: unknown; def?: unknown };
   return typeof candidate._def === "object" || typeof candidate.def === "object";
 };
 
 const defOf = (schema: unknown): Def | null => {
-  if (!isSchema(schema)) return null;
+  if (!isZodSchema(schema)) return null;
   const candidate = schema as { _def?: Def; def?: Def };
   return candidate._def ?? candidate.def ?? null;
 };
@@ -98,7 +97,7 @@ const innerOf = (def: Def): unknown => {
         return null;
       }
     }
-    if (isSchema(candidate)) return candidate;
+    if (isZodSchema(candidate)) return candidate;
   }
   return null;
 };
@@ -119,7 +118,7 @@ const isIntegerNumber = (def: Def): boolean => {
 
 const isOpen = (def: Def): boolean => {
   const catchall = def.catchall;
-  if (isSchema(catchall) && kindOf(catchall) !== "never") return true;
+  if (isZodSchema(catchall) && kindOf(catchall) !== "never") return true;
   return def.unknownKeys === "passthrough";
 };
 
@@ -143,20 +142,6 @@ const enumValues = (def: Def): LiteralValue[] => {
     );
   }
   return [];
-};
-
-// Any adapter can hand in an already-compiled Shape; only zod needs reading.
-export const toShape = (value: unknown): Shape => (isShape(value) ? value : fromZod(value));
-
-// A schema entry is either a schema (the response, as it always was) or
-// { request, response }. Both sides are optional in the object form.
-export const schemaSides = (value: unknown): { request?: unknown; response?: unknown } => {
-  if (isSchema(value)) return { response: value };
-  if (value && typeof value === "object") {
-    const pair = value as { request?: unknown; response?: unknown };
-    if (pair.request !== undefined || pair.response !== undefined) return pair;
-  }
-  return { response: value };
 };
 
 export const isOptionalSchema = (schema: unknown): boolean => {
