@@ -11,8 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # trusted publishing exchanges this for a short-lived npm token, and it is
-      # what signs the provenance statement
+      # trusted publishing exchanges this for a short-lived npm credential, and
+      # it is what signs the provenance statement
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -26,10 +26,26 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           cache: pnpm
 
-      # trusted publishing needs npm >= 11.5.1; do not rely on whatever ships
-      # with the runner's Node
+      # trusted publishing needs npm >= 11.5.1 and node >= 22.14.0; do not rely
+      # on whatever ships with the runner
       - name: Use a recent npm
         run: npm install -g npm@latest
+
+      # Says outright whether OIDC produced a credential. `npm whoami` failing
+      # here means trusted publishing is not in effect and the publish will fall
+      # back to NODE_AUTH_TOKEN.
+      - name: Report auth state
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "npm      $(npm -v)"
+          echo "node     $(node -v)"
+          echo "oidc url ${ACTIONS_ID_TOKEN_REQUEST_URL:+present}${ACTIONS_ID_TOKEN_REQUEST_URL:-MISSING}"
+          echo "token    ${NODE_AUTH_TOKEN:+present}${NODE_AUTH_TOKEN:-absent}"
+          echo "--- .npmrc ---"
+          sed 's/\(_authToken=\).*/\1<redacted>/' ~/.npmrc 2>/dev/null || echo "(none)"
+          echo "--- identity ---"
+          npm whoami || echo "npm whoami failed — no usable credential"
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
@@ -50,8 +66,12 @@ jobs:
       # `pnpm build` already ends in scripts/check-bundle.mjs, which enforces the
       # framework-free core and the rest of the bundle contract.
 
-      # npm, not pnpm: trusted publishing is an npm feature, and npm performs the
-      # OIDC exchange itself. No NODE_AUTH_TOKEN — supplying one would take
-      # precedence over the OIDC credential.
+      # npm, not pnpm: trusted publishing is an npm feature and npm performs the
+      # OIDC exchange itself. NODE_AUTH_TOKEN stays as a fallback — npm prefers
+      # OIDC when a trusted publisher is configured, so keeping it costs nothing
+      # and is what allows the very first publish, before the package exists and
+      # a trusted publisher can be attached to it.
       - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --provenance --access public

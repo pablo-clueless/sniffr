@@ -1,6 +1,6 @@
 {
-  "name": "@pablo-clueless/sniffr",
-  "version": "0.1.2",
+  "name": "@pablo_clueless/sniffr",
+  "version": "0.1.3",
   "description": "Watch live API responses, model what they actually return, and diff that against your zod schemas.",
   "license": "MIT",
   "author": "smsnmicheal",
@@ -61,12 +61,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pablo-clueless/sniffr.git"
+    "url": "git+https://github.com/pablo_clueless/sniffr.git"
   },
   "bugs": {
-    "url": "https://github.com/pablo-clueless/sniffr/issues"
+    "url": "https://github.com/pablo_clueless/sniffr/issues"
   },
-  "homepage": "https://github.com/pablo-clueless/sniffr#readme",
+  "homepage": "https://github.com/pablo_clueless/sniffr#readme",
   "scripts": {
     "prebuild": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "tsdown && node scripts/postbuild.mjs && node scripts/check-bundle.mjs",

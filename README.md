@@ -1,4 +1,4 @@
-# @pablo-clueless/sniffr
+# @pablo_clueless/sniffr
 
 > Watch live API responses in the browser, model what each endpoint _actually_
 > returns, and diff that against your zod schemas — or your OpenAPI spec.
@@ -23,7 +23,7 @@ Same type with a different value produces nothing.
 ## Install
 
 ```bash
-npm i -D @pablo-clueless/sniffr
+npm i -D @pablo_clueless/sniffr
 ```
 
 ## Use
@@ -37,7 +37,7 @@ import once is just a tidy habit:
 
 ```ts
 // src/sniffr.ts — call it whatever you like
-import { sniffr } from "@pablo-clueless/sniffr";
+import { sniffr } from "@pablo_clueless/sniffr";
 import { z } from "zod";
 
 export const schemas = {
@@ -79,7 +79,7 @@ importing this module from shared code is safe.
 Drop `overlay: false` and you are done — nothing else to wire up.
 
 ```ts
-import { sniffr } from "@pablo-clueless/sniffr";
+import { sniffr } from "@pablo_clueless/sniffr";
 import { schemas } from "./sniffr";
 
 if (import.meta.env.DEV) sniffr({ schemas, persist: true });
@@ -89,7 +89,7 @@ if (import.meta.env.DEV) sniffr({ schemas, persist: true });
 
 ```tsx
 import { useEffect } from "react";
-import { SniffrOverlay, useSniffr } from "@pablo-clueless/sniffr/react";
+import { SniffrOverlay, useSniffr } from "@pablo_clueless/sniffr/react";
 import { start } from "./sniffr";
 
 export function App() {
@@ -126,7 +126,7 @@ export function SniffrProvider() {
 
 ```tsx
 // app/layout.tsx
-import { SniffrOverlay } from "@pablo-clueless/sniffr/react";
+import { SniffrOverlay } from "@pablo_clueless/sniffr/react";
 import { SniffrProvider } from "./sniffr-provider";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -148,7 +148,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 ```vue
 <script setup lang="ts">
 import { onMounted, onUnmounted } from "vue";
-import { SniffrOverlay, useSniffr } from "@pablo-clueless/sniffr/vue";
+import { SniffrOverlay, useSniffr } from "@pablo_clueless/sniffr/vue";
 import { start } from "./sniffr";
 
 let handle: ReturnType<typeof start> | null = null;
@@ -173,7 +173,7 @@ Svelte version:
 ```svelte
 <script lang="ts">
   import { onMount } from "svelte";
-  import { overlay, sniffrState } from "@pablo-clueless/sniffr/svelte";
+  import { overlay, sniffrState } from "@pablo_clueless/sniffr/svelte";
   import { start } from "./sniffr";
 
   onMount(() => start().stop);
@@ -187,7 +187,7 @@ Svelte version:
 
 ```tsx
 import { onCleanup } from "solid-js";
-import { SniffrOverlay, useSniffr } from "@pablo-clueless/sniffr/solid";
+import { SniffrOverlay, useSniffr } from "@pablo_clueless/sniffr/solid";
 import { start } from "./sniffr";
 
 export function App() {
@@ -251,7 +251,7 @@ framework.
 time — handy when routes are code-split:
 
 ```ts
-import { sniffrStore } from "@pablo-clueless/sniffr";
+import { sniffrStore } from "@pablo_clueless/sniffr";
 
 sniffrStore.getState().registerSchemas({ "GET /api/orders": Order });
 ```
