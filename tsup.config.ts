@@ -35,6 +35,7 @@ export default defineConfig([
   },
   {
     entry: { ci: "src/ci/cli.ts" },
+    external: ["tsx", "tsx/esm/api"],
     format: ["esm"],
     target: "node20",
     platform: "node",

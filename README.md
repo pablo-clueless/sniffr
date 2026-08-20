@@ -234,10 +234,15 @@ pipeline. It also reads plain fixtures, so you can commit known-good responses:
 | -------------------- | ---------------------------------------------- |
 | `--schemas <module>` | module exporting `schemas` or a default export |
 | `--routes <a,b>`     | explicit route patterns                        |
+| `--fail-on <level>`  | `breaking` (default), `additive`, or `none`    |
 | `--json`             | machine-readable output                        |
 
-`--schemas` is loaded with dynamic `import()`. If your schemas are TypeScript,
-run the CLI under `tsx`, or point it at built JS.
+TypeScript schema modules work as long as `tsx` is installed — sniffr borrows it
+at runtime and never bundles it. Without it you get a message saying so, rather
+than a cryptic loader error.
+
+Use `--fail-on additive` to stop the build when the API starts sending fields you
+don't describe, or `--fail-on none` to report without ever failing.
 
 ## Requirements
 
