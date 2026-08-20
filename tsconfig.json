@@ -16,6 +16,6 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true
   },
-  "include": ["src/**/*", "test/**/*", "example/**/*", "tsup.config.ts", "vitest.config.ts"],
+  "include": ["src/**/*", "test/**/*", "example/**/*", "*.config.ts"],
   "exclude": ["example/sniffr-example"]
 }
