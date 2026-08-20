@@ -1,6 +1,6 @@
 {
-  "name": "@pablo_clueless/sniffr",
-  "version": "0.1.1",
+  "name": "@pablo-clueless/sniffr",
+  "version": "0.1.2",
   "description": "Watch live API responses, model what they actually return, and diff that against your zod schemas.",
   "license": "MIT",
   "author": "smsnmicheal",

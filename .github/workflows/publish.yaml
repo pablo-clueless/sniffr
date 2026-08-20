@@ -11,7 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # required for npm provenance
+      # trusted publishing exchanges this for a short-lived npm token, and it is
+      # what signs the provenance statement
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -24,10 +26,16 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           cache: pnpm
 
+      # trusted publishing needs npm >= 11.5.1; do not rely on whatever ships
+      # with the runner's Node
+      - name: Use a recent npm
+        run: npm install -g npm@latest
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm lint
+      - run: pnpm format:check
       - run: pnpm test
 
       - name: Verify the tag matches the package version
@@ -39,11 +47,11 @@ jobs:
             exit 1
           fi
 
-      - name: Verify the core bundle carries no framework
-        run: |
-          test "$(grep -c "from 'react'\|from 'vue'" dist/index.js)" = "0"
+      # `pnpm build` already ends in scripts/check-bundle.mjs, which enforces the
+      # framework-free core and the rest of the bundle contract.
 
+      # npm, not pnpm: trusted publishing is an npm feature, and npm performs the
+      # OIDC exchange itself. No NODE_AUTH_TOKEN — supplying one would take
+      # precedence over the OIDC credential.
       - name: Publish
-        run: pnpm publish --provenance --access public --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
