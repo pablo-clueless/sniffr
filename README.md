@@ -298,9 +298,6 @@ to any corner and it stays there. It reopens
 the way you left it, and renders into a shadow root, so no CSS crosses in either
 direction.
 
-The panel is set in Fira Code, fetched from Google Fonts with `display=swap`. If
-your CSP blocks it, the fallback stack takes over and nothing else changes.
-
 Runnable examples live in `example/`: `react.html`, `vue.html` and
 `overlay.html`. Run `npm run build`, serve the repo root, and open one.
 
