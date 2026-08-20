@@ -28,111 +28,197 @@ npm i -D @pablo_clueless/sniffr
 
 ## Use
 
+Setup is the same everywhere: **one `sniffr()` call, one overlay.** Only where you
+put them changes per framework.
+
+sniffr never looks for a file by name — there is no config file, nothing to
+scaffold, no `sniffr.config.ts` convention. Putting the call in a module you
+import once is just a tidy habit:
+
 ```ts
-// sniffr.config.ts
+// src/sniffr.ts — call it whatever you like
 import { sniffr } from "@pablo_clueless/sniffr";
 import { z } from "zod";
 
-if (process.env.NODE_ENV !== "production") {
+export const schemas = {
+  "GET /api/users": z.object({ data: z.array(User) }),
+  "GET /api/users/:id": User,
+  "POST /api/users": { request: CreateUser, response: User },
+};
+
+export const start = () =>
   sniffr({
-    schemas: {
-      "GET /api/users": z.object({ data: z.array(User) }),
-      "GET /api/users/:id": User,
-    },
+    schemas,
+    persist: true, // measure drift against yesterday, not just this session
+    routes: ["/api/posts/:slug"], // ids that sniffr should not guess
+    overlay: false, // the framework component below mounts it
   });
+```
+
+`start()` patches `fetch` and `XMLHttpRequest`, models every JSON response, and
+returns `{ stop }` to undo it. Interceptors never throw into your app — a failure
+inside sniffr returns your response untouched. On the server it is a no-op, so
+importing this module from shared code is safe.
+
+> **Pass `overlay: false` whenever you render `<SniffrOverlay />`.** Otherwise
+> `sniffr()` mounts a panel _and_ the component mounts a second one, and you get
+> two pills.
+
+### Setup by framework
+
+| Framework | Mount the overlay     | Read the state                      |
+| --------- | --------------------- | ----------------------------------- |
+| none      | `sniffr()` does it    | `sniffrStore.getState()`            |
+| React     | `<SniffrOverlay />`   | `useSniffr()` → state               |
+| Vue       | `<SniffrOverlay />`   | `useSniffr()` → `ShallowRef<state>` |
+| Solid     | `<SniffrOverlay />`   | `useSniffr()` → `Accessor<state>`   |
+| Svelte    | `<div use:overlay />` | `$sniffrState`                      |
+
+#### No framework
+
+Drop `overlay: false` and you are done — nothing else to wire up.
+
+```ts
+import { sniffr } from "@pablo_clueless/sniffr";
+import { schemas } from "./sniffr";
+
+if (import.meta.env.DEV) sniffr({ schemas, persist: true });
+```
+
+#### React
+
+```tsx
+import { useEffect } from "react";
+import { SniffrOverlay, useSniffr } from "@pablo_clueless/sniffr/react";
+import { start } from "./sniffr";
+
+export function App() {
+  // start() returns { stop }, which is exactly the cleanup useEffect wants
+  useEffect(() => start().stop, []);
+  const { models } = useSniffr();
+
+  return (
+    <>
+      <p>{Object.keys(models).length} endpoints observed</p>
+      <SniffrOverlay />
+    </>
+  );
 }
 ```
 
-There is **no config file**. sniffr is a function you call from your own code —
-nothing to scaffold, nothing to generate, no `sniffr.config.ts`. The snippet above
-is the entire setup.
+#### Next.js (App Router)
 
-That patches `fetch` and `XMLHttpRequest`, models every JSON response, and mounts
-the overlay. Interceptors never throw into your app — a failure inside sniffr
-returns your response untouched. On the server `sniffr()` is a no-op, so it never
-touches a server `fetch`.
-
-### React
+`sniffr/react` ships `"use client"`, so `<SniffrOverlay />` renders straight from
+a server component. Interceptors still have to be installed in the browser, so
+they go in a client component:
 
 ```tsx
-import { SniffrOverlay, useSniffr } from "@pablo_clueless/sniffr/react";
+// app/sniffr-provider.tsx
+"use client";
+import { useEffect } from "react";
+import { start } from "@/sniffr";
 
-<SniffrOverlay />;
+export function SniffrProvider() {
+  useEffect(() => start().stop, []);
+  return null;
+}
 ```
-
-### Next.js
-
-`sniffr/react` ships `"use client"`, so `<SniffrOverlay />` can be rendered
-straight from a server component — put it in your root layout behind a dev check:
 
 ```tsx
 // app/layout.tsx
 import { SniffrOverlay } from "@pablo_clueless/sniffr/react";
+import { SniffrProvider } from "./sniffr-provider";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const dev = process.env.NODE_ENV !== "production";
   return (
     <html lang="en">
       <body>
         {children}
-        {process.env.NODE_ENV !== "production" && <SniffrOverlay />}
+        {dev && <SniffrProvider />}
+        {dev && <SniffrOverlay />}
       </body>
     </html>
   );
 }
 ```
 
-Registering schemas and installing the interceptors has to happen in the browser,
-so call `sniffr()` from a client component:
-
-```tsx
-"use client";
-import { useEffect } from "react";
-import { sniffr } from "@pablo_clueless/sniffr";
-
-export function SniffrProvider() {
-  useEffect(() => sniffr({ overlay: false, schemas: { "GET /api/users": Users } }).stop, []);
-  return null;
-}
-```
-
-`sniffr()` returns early on the server, so importing it from shared code is safe —
-it will never patch the `fetch` Next.js instruments for caching.
-
-### Svelte
-
-No `svelte` import and no peer dependency — the store contract and actions are
-plain objects and functions:
-
-```svelte
-<script lang="ts">
-  import { sniffrState, overlay } from "@pablo_clueless/sniffr/svelte";
-</script>
-
-<div use:overlay />
-<p>{Object.keys($sniffrState.models).length} endpoints seen</p>
-```
-
-### Solid
-
-```tsx
-import { SniffrOverlay, useSniffr } from "@pablo_clueless/sniffr/solid";
-
-<SniffrOverlay />;
-```
-
-### Vue
+#### Vue
 
 ```vue
 <script setup lang="ts">
+import { onMounted, onUnmounted } from "vue";
 import { SniffrOverlay, useSniffr } from "@pablo_clueless/sniffr/vue";
+import { start } from "./sniffr";
+
+let handle: ReturnType<typeof start> | null = null;
+onMounted(() => (handle = start()));
+onUnmounted(() => handle?.stop());
+
+const state = useSniffr(); // ShallowRef, so read state.value
 </script>
 
-<template><SniffrOverlay /></template>
+<template>
+  <p>{{ Object.keys(state.models).length }} endpoints observed</p>
+  <SniffrOverlay />
+</template>
+```
+
+#### Svelte
+
+No `svelte` import and no peer dependency — a store is an object with
+`subscribe`, and an action is a plain function, so this entry works with any
+Svelte version:
+
+```svelte
+<script lang="ts">
+  import { onMount } from "svelte";
+  import { overlay, sniffrState } from "@pablo_clueless/sniffr/svelte";
+  import { start } from "./sniffr";
+
+  onMount(() => start().stop);
+</script>
+
+<p>{Object.keys($sniffrState.models).length} endpoints observed</p>
+<div use:overlay />
+```
+
+#### Solid
+
+```tsx
+import { onCleanup } from "solid-js";
+import { SniffrOverlay, useSniffr } from "@pablo_clueless/sniffr/solid";
+import { start } from "./sniffr";
+
+export function App() {
+  onCleanup(start().stop);
+  const state = useSniffr(); // an Accessor, so call it
+
+  return (
+    <>
+      <p>{Object.keys(state().models).length} endpoints observed</p>
+      <SniffrOverlay />
+    </>
+  );
+}
 ```
 
 `react`, `vue` and `solid-js` are optional peers — a Vue user is never asked to
 install React, and the core entry pulls in none of them. The Svelte entry has no
 peer at all.
+
+### Registering schemas later
+
+`schemas` on the `sniffr()` call is the usual route, but you can add more at any
+time — handy when routes are code-split:
+
+```ts
+import { sniffrStore } from "@pablo_clueless/sniffr";
+
+sniffrStore.getState().registerSchemas({ "GET /api/orders": Order });
+```
+
+Anything already observed is re-diffed against the new schema immediately.
 
 ## API
 
