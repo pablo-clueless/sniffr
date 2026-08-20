@@ -1,5 +1,5 @@
 import { endpointKey, normalizeRoute } from "../core/route.js";
-import { fromZod, schemaSides } from "../core/from-zod.js";
+import { schemaSides, toShape } from "../core/from-zod.js";
 import { asRequest, diff } from "../core/diff.js";
 import type { Change } from "../core/diff.js";
 import type { Shape } from "../core/shape.js";
@@ -49,8 +49,8 @@ export const analyze = (samples: readonly Sample[], options: AnalyzeOptions = {}
   for (const [raw, value] of Object.entries(options.schemas ?? {})) {
     const key = schemaKey(raw, routes);
     const { request, response } = schemaSides(value);
-    if (response !== undefined) expectedByKey.set(key, fromZod(response));
-    if (request !== undefined) expectedRequestByKey.set(key, fromZod(request));
+    if (response !== undefined) expectedByKey.set(key, toShape(response));
+    if (request !== undefined) expectedRequestByKey.set(key, toShape(request));
   }
 
   const observedByKey = new Map<

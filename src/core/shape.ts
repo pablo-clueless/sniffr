@@ -39,6 +39,11 @@ export const object = (fields: Record<string, Field>, open = false): Shape => ({
 
 export const field = (shape: Shape, optional = false): Field => ({ shape, optional });
 
+const KINDS = new Set(["primitive", "literal", "array", "object", "union"]);
+
+export const isShape = (value: unknown): value is Shape =>
+  !!value && typeof value === "object" && KINDS.has((value as { kind?: unknown }).kind as string);
+
 export const isUnknown = (s: Shape): boolean => s.kind === "primitive" && s.type === "unknown";
 
 export const isNull = (s: Shape): boolean => s.kind === "primitive" && s.type === "null";

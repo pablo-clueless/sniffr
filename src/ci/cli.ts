@@ -2,6 +2,7 @@ import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 
 import { plural, renderJson, renderReport } from "./report.js";
+import { schemasFromOpenApi } from "../core/from-openapi.js";
 import { loadSamples } from "./sources.js";
 import { analyze } from "./analyze.js";
 
@@ -18,6 +19,7 @@ Options:
   --schemas <module>   module exporting \`schemas\` or a default export:
                        { "GET /api/users": zodSchema }
                        TypeScript works if \`tsx\` is installed.
+  --openapi <file>     an OpenAPI 3.x document (JSON) to take schemas from
   --routes <patterns>  comma-separated explicit route patterns
   --fail-on <level>    breaking (default) | additive | none
   --json               emit JSON instead of the text report
@@ -35,6 +37,7 @@ const FAIL_LEVELS = new Set<string>(["breaking", "additive", "none"]);
 export type ParsedArgs = {
   readonly paths: readonly string[];
   readonly schemas?: string;
+  readonly openapi?: string;
   readonly routes: readonly string[];
   readonly failOn: FailOn;
   readonly json: boolean;
@@ -44,6 +47,7 @@ export type ParsedArgs = {
 export const parseArgs = (argv: readonly string[]): ParsedArgs => {
   const paths: string[] = [];
   let schemas: string | undefined;
+  let openapi: string | undefined;
   let routes: string[] = [];
   let failOn: FailOn = "breaking";
   let json = false;
@@ -56,6 +60,9 @@ export const parseArgs = (argv: readonly string[]): ParsedArgs => {
     else if (arg === "--schemas") {
       index += 1;
       schemas = argv[index];
+    } else if (arg === "--openapi") {
+      index += 1;
+      openapi = argv[index];
     } else if (arg === "--routes") {
       index += 1;
       routes = (argv[index] ?? "").split(",").filter(Boolean);
@@ -71,7 +78,7 @@ export const parseArgs = (argv: readonly string[]): ParsedArgs => {
     } else paths.push(arg);
   }
 
-  return { paths, schemas, routes, failOn, json, help };
+  return { paths, schemas, openapi, routes, failOn, json, help };
 };
 
 // A schema module is usually TypeScript. Node cannot import that on its own, so
@@ -111,6 +118,24 @@ const failed = (analysis: { breaking: number; additive: number }, failOn: FailOn
   return analysis.breaking > 0;
 };
 
+const loadOpenApi = async (specifier: string): Promise<Record<string, unknown>> => {
+  const { readFile } = await import("node:fs/promises");
+  const text = await readFile(resolve(specifier), "utf8");
+
+  let document: unknown;
+  try {
+    document = JSON.parse(text) as unknown;
+  } catch {
+    throw new Error(`${specifier} is not valid JSON. sniffr does not parse YAML specs.`);
+  }
+
+  const schemas = schemasFromOpenApi(document);
+  if (Object.keys(schemas).length === 0) {
+    throw new Error(`${specifier} has no operations with a JSON request or response schema`);
+  }
+  return schemas;
+};
+
 export const run = async (argv: readonly string[]): Promise<number> => {
   const args = parseArgs(argv);
 
@@ -127,7 +152,15 @@ export const run = async (argv: readonly string[]): Promise<number> => {
     return 2;
   }
 
-  const schemas = args.schemas ? await loadSchemas(args.schemas) : {};
+  const schemas: Record<string, unknown> = {
+    ...(args.openapi ? await loadOpenApi(args.openapi) : {}),
+    ...(args.schemas ? await loadSchemas(args.schemas) : {}),
+  };
+
+  if (Object.keys(schemas).length === 0) {
+    console.warn("no schemas given — reporting observed shapes only");
+  }
+
   const analysis = analyze(samples, { schemas, routes: args.routes });
 
   console.log(args.json ? renderJson(analysis) : renderReport(analysis));

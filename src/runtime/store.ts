@@ -2,15 +2,15 @@ import { createStore } from "zustand/vanilla";
 
 import type { PersistedModel, StorageLike } from "./persist.js";
 import { endpointKey, normalizeRoute } from "../core/route.js";
+import { schemaSides, toShape } from "../core/from-zod.js";
 import { hashSchemas } from "../core/serialize.js";
 import { asRequest, diff } from "../core/diff.js";
 import type { Change } from "../core/diff.js";
-import { fromZod, schemaSides } from "../core/from-zod.js";
 import type { Shape } from "../core/shape.js";
 import { UNKNOWN } from "../core/shape.js";
+import { load, save } from "./persist.js";
 import { infer } from "../core/infer.js";
 import { merge } from "../core/merge.js";
-import { load, save } from "./persist.js";
 
 export type Capture = {
   readonly method: string;
@@ -143,8 +143,8 @@ export const sniffrStore = createStore<SniffrState>((set, get) => ({
     for (const [raw, value] of Object.entries(input)) {
       const key = schemaKey(raw, routes);
       const { request, response } = schemaSides(value);
-      if (response !== undefined) nextResponse[key] = fromZod(response);
-      if (request !== undefined) nextRequest[key] = fromZod(request);
+      if (response !== undefined) nextResponse[key] = toShape(response);
+      if (request !== undefined) nextRequest[key] = toShape(request);
     }
 
     set({
