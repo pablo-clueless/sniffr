@@ -207,6 +207,44 @@ export function App() {
 install React, and the core entry pulls in none of them. The Svelte entry has no
 peer at all.
 
+### Keeping it out of your production bundle
+
+`{import.meta.env.DEV && <SniffrOverlay />}` guards the **rendering**, not the
+**import graph**. A static import still pulls sniffr — and zod, through your
+schema module — into the production bundle, even though nothing renders it.
+
+Put everything that touches sniffr in one module and reach it dynamically:
+
+```tsx
+// src/sniffr-devtools.tsx — start(), useSniffr() and <SniffrOverlay /> all live here
+```
+
+```tsx
+// wherever you mount it
+const SniffrDevtools = import.meta.env.DEV ? lazy(() => import("./sniffr-devtools")) : null;
+
+{
+  SniffrDevtools && (
+    <Suspense fallback={null}>
+      <SniffrDevtools />
+    </Suspense>
+  );
+}
+```
+
+With `DEV` folded to `false`, the `lazy()` call is unreachable and the bundler
+drops the whole graph. On `example/sniffr-example` that is **275 kB → 192 kB**
+(84 kB → 61 kB gzipped), with no orphan chunk left behind. Check your own build
+the same way:
+
+```bash
+grep -c "sniffr:v1:" dist/assets/*.js   # 0
+```
+
+The same shape works anywhere: Vue's `defineAsyncComponent`, Svelte's `{#await
+import(...)}`, Solid's `lazy` — the point is the dynamic `import()`, not the
+framework.
+
 ### Registering schemas later
 
 `schemas` on the `sniffr()` call is the usual route, but you can add more at any

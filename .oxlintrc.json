@@ -6,7 +6,7 @@
     "suspicious": "error",
     "perf": "warn"
   },
-  "ignorePatterns": ["dist", "coverage", "node_modules"],
+  "ignorePatterns": ["dist", "coverage", "node_modules", "example/sniffr-example"],
   "rules": {
     "no-console": "off",
     "typescript/no-explicit-any": "error",
