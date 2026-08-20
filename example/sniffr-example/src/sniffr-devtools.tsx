@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { SniffrOverlay, useSniffr } from "@pablo-clueless/sniffr/react";
+import { SniffrOverlay, useSniffr } from "@pablo_clueless/sniffr/react";
 
 import { start } from "./sniffr";
 

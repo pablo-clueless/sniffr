@@ -8,7 +8,7 @@ importers:
 
   .:
     dependencies:
-      '@pablo-clueless/sniffr':
+      '@pablo_clueless/sniffr':
         specifier: link:../..
         version: link:../..
       react:
