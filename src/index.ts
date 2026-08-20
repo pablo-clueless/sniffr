@@ -48,17 +48,19 @@ export const sniffr = (options: SniffrOptions = {}): SniffrHandle => {
   };
 };
 
+export { fromOpenApi, routeFromTemplate, schemasFromOpenApi } from "./core/from-openapi.js";
 export { canonical, hash, hashSchemas, hashShape, parseShape } from "./core/serialize.js";
+export { fromZod, isOptionalSchema, schemaSides, toShape } from "./core/from-zod.js";
 export type { Field, LiteralValue, PrimitiveType, Shape } from "./core/shape.js";
 export type { CaptureHandler, InterceptOptions } from "./runtime/intercept.js";
 export type { Capture, EndpointModel, SniffrState } from "./runtime/store.js";
 export type { PersistedModel, StorageLike } from "./runtime/persist.js";
 export { intercept, MAX_BODY_BYTES } from "./runtime/intercept.js";
 export type { Change, ChangeCode, Severity } from "./core/diff.js";
-export { fromZod, isOptionalSchema } from "./core/from-zod.js";
 export { ENUM_CARDINALITY_CAP, merge } from "./core/merge.js";
 export { assignable, diff, isBreaking } from "./core/diff.js";
 export { endpointKey, normalizeRoute } from "./core/route.js";
+export type { OpenApiSchemas } from "./core/from-openapi.js";
 export { endpoints, sniffrStore } from "./runtime/store.js";
 export type { OverlayHandle } from "./ui/overlay.js";
 export { mountOverlay } from "./ui/overlay.js";
@@ -77,6 +79,7 @@ export {
   literal,
   object,
   primitive,
+  isShape,
   render,
   union,
   widenLiterals,
