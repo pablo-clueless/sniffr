@@ -4,7 +4,7 @@ import { z } from "zod";
 import { analyze } from "../src/ci/analyze.js";
 import { renderReport } from "../src/ci/report.js";
 import { loadSamples } from "../src/ci/sources.js";
-import { schemaSides } from "../src/core/from-zod.js";
+import { schemaSides } from "../src/core/compile.js";
 import { intercept } from "../src/runtime/intercept.js";
 import { sniffrStore } from "../src/runtime/store.js";
 import type { Capture } from "../src/runtime/store.js";

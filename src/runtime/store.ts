@@ -2,7 +2,7 @@ import { createStore } from "zustand/vanilla";
 
 import type { PersistedModel, StorageLike } from "./persist.js";
 import { endpointKey, normalizeRoute } from "../core/route.js";
-import { schemaSides, toShape } from "../core/from-zod.js";
+import { schemaSides, toShape } from "../core/compile.js";
 import { hashSchemas } from "../core/serialize.js";
 import { asRequest, diff } from "../core/diff.js";
 import type { Change } from "../core/diff.js";
@@ -147,7 +147,33 @@ export const sniffrStore = createStore<SniffrState>((set, get) => ({
       if (request !== undefined) nextRequest[key] = toShape(request);
     }
 
+    // a schema can arrive after its endpoint was already observed — a code-split
+    // route, say — so re-diff what is on hand rather than waiting for the next
+    // response to make it visible
+    const { models } = get();
+    const rediffed: Record<string, EndpointModel> = {};
+    for (const [key, model] of Object.entries(models)) {
+      const expected = nextResponse[key] ?? nextResponse[model.route] ?? model.expected;
+      const expectedRequest = nextRequest[key] ?? nextRequest[model.route] ?? model.expectedRequest;
+
+      rediffed[key] =
+        expected === model.expected && expectedRequest === model.expectedRequest
+          ? model
+          : {
+              ...model,
+              expected,
+              expectedRequest,
+              changes: [
+                ...(expected ? diff(expected, model.observed) : []),
+                ...(expectedRequest && model.request
+                  ? asRequest(diff(expectedRequest, model.request))
+                  : []),
+              ],
+            };
+    }
+
     set({
+      models: rediffed,
       schemas: nextResponse,
       requestSchemas: nextRequest,
       schemaHash: hashSchemas({
