@@ -50,7 +50,9 @@ export const sniffr = (options: SniffrOptions = {}): SniffrHandle => {
 
 export { fromOpenApi, routeFromTemplate, schemasFromOpenApi } from "./core/from-openapi.js";
 export { canonical, hash, hashSchemas, hashShape, parseShape } from "./core/serialize.js";
-export { fromZod, isOptionalSchema, schemaSides, toShape } from "./core/from-zod.js";
+export { fromZod, isOptionalSchema, isZodSchema } from "./core/from-zod.js";
+export { fromValibot, isOptionalValibotSchema, isValibotSchema } from "./core/from-valibot.js";
+export { isDeclaredSchema, schemaSides, toShape } from "./core/compile.js";
 export type { Field, LiteralValue, PrimitiveType, Shape } from "./core/shape.js";
 export type { CaptureHandler, InterceptOptions } from "./runtime/intercept.js";
 export type { Capture, EndpointModel, SniffrState } from "./runtime/store.js";

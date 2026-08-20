@@ -4,7 +4,13 @@ import type { StorageLike } from "../src/runtime/persist.js";
 import { PREFERENCES_KEY, readPreferences, writePreferences } from "../src/ui/preferences.js";
 import type { OverlayPreferences } from "../src/ui/preferences.js";
 
-const defaults: OverlayPreferences = { open: false, height: 360, filter: "" };
+const defaults: OverlayPreferences = {
+  open: false,
+  height: 360,
+  filter: "",
+  theme: "system",
+  position: "bottom-left",
+};
 
 const fake = (initial?: string, throwing = false): StorageLike & { value: string | null } => {
   let value = initial ?? null;
@@ -29,11 +35,16 @@ const fake = (initial?: string, throwing = false): StorageLike & { value: string
 describe("preferences", () => {
   it("round-trips", () => {
     const storage = fake();
-    writePreferences({ open: true, height: 500, filter: "users" }, storage);
+    writePreferences(
+      { open: true, height: 500, filter: "users", theme: "light", position: "top-right" },
+      storage,
+    );
     expect(readPreferences(defaults, storage)).toEqual({
       open: true,
       height: 500,
       filter: "users",
+      theme: "light",
+      position: "top-right",
     });
   });
 
@@ -67,7 +78,24 @@ describe("preferences", () => {
       open: true,
       height: 360,
       filter: "",
+      theme: "system",
+      position: "bottom-left",
     });
+  });
+
+  it("keeps only a recognised theme", () => {
+    expect(readPreferences(defaults, fake(JSON.stringify({ theme: "dark" }))).theme).toBe("dark");
+    expect(readPreferences(defaults, fake(JSON.stringify({ theme: "light" }))).theme).toBe("light");
+    expect(readPreferences(defaults, fake(JSON.stringify({ theme: "neon" }))).theme).toBe("system");
+  });
+
+  it("keeps only a recognised position", () => {
+    const read = (value: unknown) =>
+      readPreferences(defaults, fake(JSON.stringify({ position: value }))).position;
+    expect(read("top-right")).toBe("top-right");
+    expect(read("bottom-right")).toBe("bottom-right");
+    expect(read("middle")).toBe("bottom-left");
+    expect(read(7)).toBe("bottom-left");
   });
 
   it("rejects a non-finite height", () => {

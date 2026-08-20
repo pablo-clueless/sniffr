@@ -1,6 +1,7 @@
 import type { EndpointModel, SniffrState } from "../runtime/store.js";
 import { readPreferences, writePreferences } from "./preferences.js";
 import { endpoints, sniffrStore } from "../runtime/store.js";
+import type { OverlayPosition, OverlayTheme } from "./preferences.js";
 import type { Change } from "../core/diff.js";
 
 export type OverlayHandle = {
@@ -11,13 +12,20 @@ export const MIN_PANEL_HEIGHT = 160;
 export const DEFAULT_PANEL_HEIGHT = 360;
 
 const STYLES = `
+/* display=swap so a blocked or slow fetch shows the fallback instead of nothing.
+   A host page's CSP can refuse this outright, which is why the stack below still
+   has to stand on its own. */
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&display=swap");
+
 :host {
   all: initial;
   display: block;
+  --font: "Fira Code", "FiraCode Nerd Font", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; font-family: var(--font); }
 
+/* dark is the default; the two blocks below are the only place colours differ */
 .pill, .panel {
   --bg: #0e1116;
   --raised: #161b22;
@@ -27,18 +35,52 @@ const STYLES = `
   --red: #f85149;
   --amber: #d29922;
   --green: #3fb950;
-  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   position: fixed;
   z-index: 2147483647;
   color: var(--text);
 }
 
+/* "system" follows the OS; an explicit choice wins in both directions */
+@media (prefers-color-scheme: light) {
+  :host(:not([data-theme="dark"])) .pill,
+  :host(:not([data-theme="dark"])) .panel {
+    --bg: #ffffff;
+    --raised: #f2f4f7;
+    --border: #d5dae0;
+    --text: #1f2328;
+    --muted: #5d6772;
+    --red: #cf222e;
+    --amber: #9a6700;
+    --green: #1a7f37;
+  }
+}
+:host([data-theme="light"]) .pill,
+:host([data-theme="light"]) .panel {
+  --bg: #ffffff;
+  --raised: #f2f4f7;
+  --border: #d5dae0;
+  --text: #1f2328;
+  --muted: #5d6772;
+  --red: #cf222e;
+  --amber: #9a6700;
+  --green: #1a7f37;
+}
+
+.theme {
+  all: unset;
+  cursor: pointer;
+  padding: 3px 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font: 11px/1.4 var(--font);
+}
+.theme:hover { color: var(--text); background: var(--raised); }
+.theme:focus-visible { outline: 2px solid var(--amber); }
+
 /* trigger */
 
 .pill {
-  left: 16px;
-  bottom: 16px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -47,11 +89,17 @@ const STYLES = `
   border-radius: 999px;
   background: var(--bg);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
-  font: 500 12px/1 var(--sans);
+  font: 500 12px/1 var(--font);
   cursor: pointer;
   transition: border-color 120ms ease, transform 120ms ease;
 }
+:host([data-position="bottom-left"]) .pill { left: 16px; bottom: 16px; }
+:host([data-position="bottom-right"]) .pill { right: 16px; bottom: 16px; }
+:host([data-position="top-left"]) .pill { left: 16px; top: 16px; }
+:host([data-position="top-right"]) .pill { right: 16px; top: 16px; }
+
 .pill:hover { transform: translateY(-1px); border-color: #3a4351; }
+.pill[data-dragging="true"] { cursor: grabbing; transform: none; opacity: 0.9; }
 .pill:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .pill[hidden], .panel[hidden] { display: none; }
 
@@ -78,7 +126,7 @@ const STYLES = `
   padding: 2px 6px;
   border-radius: 999px;
   background: var(--raised);
-  font: 600 11px/1 var(--mono);
+  font: 600 11px/1 var(--font);
   color: var(--text);
 }
 .badge[hidden] { display: none; }
@@ -94,7 +142,7 @@ const STYLES = `
   border-top: 1px solid var(--border);
   background: var(--bg);
   box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.45);
-  font: 12px/1.5 var(--sans);
+  font: 12px/1.5 var(--font);
 }
 
 .resizer {
@@ -115,7 +163,7 @@ const STYLES = `
   flex: none;
 }
 .brand { font-weight: 700; letter-spacing: 0.06em; text-transform: lowercase; }
-.summary { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+.summary { color: var(--muted); font-family: var(--font); font-size: 11px; }
 .spacer { flex: 1; }
 .filter {
   all: unset;
@@ -125,7 +173,7 @@ const STYLES = `
   border-radius: 6px;
   background: var(--raised);
   color: var(--text);
-  font: 11px/1.4 var(--mono);
+  font: 11px/1.4 var(--font);
 }
 .filter::placeholder { color: #6b7480; }
 .filter:focus-visible { border-color: var(--amber); }
@@ -135,7 +183,7 @@ const STYLES = `
   padding: 2px 8px;
   border-radius: 6px;
   color: var(--muted);
-  font: 600 14px/1 var(--sans);
+  font: 600 14px/1 var(--font);
 }
 .close:hover { color: var(--text); background: var(--raised); }
 .close:focus-visible { outline: 2px solid var(--amber); }
@@ -170,7 +218,7 @@ const STYLES = `
 
 .endpoint-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .method {
-  font: 600 10px/1 var(--mono);
+  font: 600 10px/1 var(--font);
   color: var(--muted);
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -178,7 +226,7 @@ const STYLES = `
   flex: none;
 }
 .route {
-  font-family: var(--mono);
+  font-family: var(--font);
   font-size: 11px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -186,7 +234,7 @@ const STYLES = `
 }
 .pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
 .mini {
-  font: 600 10px/1 var(--mono);
+  font: 600 10px/1 var(--font);
   padding: 3px 6px;
   border-radius: 999px;
 }
@@ -196,7 +244,7 @@ const STYLES = `
 
 .detail { flex: 1; overflow-y: auto; padding: 10px 14px; min-width: 0; }
 .detail-route {
-  font-family: var(--mono);
+  font-family: var(--font);
   font-size: 11px;
   color: var(--muted);
   margin-bottom: 10px;
@@ -213,7 +261,7 @@ const STYLES = `
 }
 .row:first-of-type { border-top: none; }
 .tag {
-  font: 600 9px/1.4 var(--mono);
+  font: 600 9px/1.4 var(--font);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   text-align: center;
@@ -223,10 +271,10 @@ const STYLES = `
 .tag.breaking { color: var(--red); background: rgba(248, 81, 73, 0.12); }
 .tag.additive { color: var(--green); background: rgba(63, 185, 80, 0.12); }
 .tag.info { color: var(--muted); background: var(--raised); }
-.path { font-family: var(--mono); font-size: 11px; word-break: break-all; }
-.shift { font-family: var(--mono); font-size: 11px; color: var(--muted); word-break: break-all; }
+.path { font-family: var(--font); font-size: 11px; word-break: break-all; }
+.shift { font-family: var(--font); font-size: 11px; color: var(--muted); word-break: break-all; }
 .side {
-  font: 600 9px/1 var(--mono);
+  font: 600 9px/1 var(--font);
   color: var(--amber);
   border: 1px solid rgba(210, 153, 34, 0.4);
   border-radius: 3px;
@@ -234,6 +282,24 @@ const STYLES = `
   margin-right: 6px;
 }
 `;
+
+const THEME_LABELS: Record<OverlayTheme, string> = {
+  system: "auto",
+  dark: "dark",
+  light: "light",
+};
+
+const NEXT_THEME: Record<OverlayTheme, OverlayTheme> = {
+  system: "light",
+  light: "dark",
+  dark: "system",
+};
+
+const cornerFor = (x: number, y: number): OverlayPosition => {
+  const width = globalThis.innerWidth || 1024;
+  const height = globalThis.innerHeight || 768;
+  return `${y < height / 2 ? "top" : "bottom"}-${x < width / 2 ? "left" : "right"}`;
+};
 
 const notable = (change: Change): boolean => change.severity !== "info";
 
@@ -324,11 +390,15 @@ export const mountOverlay = (target?: Element): OverlayHandle => {
   filter.placeholder = "Filter routes…";
   filter.setAttribute("aria-label", "Filter routes");
 
+  const themeButton = element("button", "theme");
+  themeButton.type = "button";
+
   header.append(
     element("span", "brand", "sniffr"),
     summary,
     element("span", "spacer"),
     filter,
+    themeButton,
     close,
   );
 
@@ -345,14 +415,39 @@ export const mountOverlay = (target?: Element): OverlayHandle => {
     open: false,
     height: DEFAULT_PANEL_HEIGHT,
     filter: "",
+    theme: "system",
+    position: "bottom-left",
   });
 
   let open = preferences.open;
   let height = preferences.height;
+  let theme = preferences.theme;
+  let position = preferences.position;
   let selected: string | null = null;
   filter.value = preferences.filter;
 
-  const remember = (): void => writePreferences({ open, height, filter: filter.value });
+  const remember = (): void =>
+    writePreferences({ open, height, filter: filter.value, theme, position });
+
+  const applyPosition = (): void => {
+    host.dataset.position = position;
+    pill.style.removeProperty("left");
+    pill.style.removeProperty("top");
+    pill.title = "Drag to move";
+  };
+
+  const applyTheme = (): void => {
+    host.dataset.theme = theme;
+    themeButton.textContent = THEME_LABELS[theme];
+    themeButton.title = `Theme: ${theme} (click to change)`;
+    themeButton.setAttribute("aria-label", `Theme: ${theme}`);
+  };
+
+  themeButton.addEventListener("click", () => {
+    theme = NEXT_THEME[theme];
+    applyTheme();
+    remember();
+  });
 
   const maxHeight = (): number =>
     Math.max(MIN_PANEL_HEIGHT, Math.round((globalThis.innerHeight || 800) * 0.9));
@@ -425,7 +520,51 @@ export const mountOverlay = (target?: Element): OverlayHandle => {
     render(sniffrStore.getState());
   });
 
-  pill.addEventListener("click", () => setOpen(true));
+  const DRAG_THRESHOLD = 4;
+  let pillFrom: { x: number; y: number } | null = null;
+  let pillMoved = false;
+
+  pill.addEventListener("mousedown", (event) => {
+    pillFrom = { x: event.clientX, y: event.clientY };
+    pillMoved = false;
+  });
+
+  const onPillMove = (event: MouseEvent): void => {
+    if (!pillFrom) return;
+    const dx = event.clientX - pillFrom.x;
+    const dy = event.clientY - pillFrom.y;
+    if (!pillMoved && Math.abs(dx) + Math.abs(dy) < DRAG_THRESHOLD) return;
+
+    pillMoved = true;
+    pill.dataset.dragging = "true";
+    pill.style.left = `${event.clientX - pill.offsetWidth / 2}px`;
+    pill.style.top = `${event.clientY - pill.offsetHeight / 2}px`;
+    pill.style.right = "auto";
+    pill.style.bottom = "auto";
+  };
+
+  const onPillUp = (event: MouseEvent): void => {
+    if (!pillFrom) return;
+    pillFrom = null;
+    if (!pillMoved) return;
+
+    pill.dataset.dragging = "false";
+    pill.style.removeProperty("right");
+    pill.style.removeProperty("bottom");
+    position = cornerFor(event.clientX, event.clientY);
+    applyPosition();
+    remember();
+  };
+
+  // a drag ends with a click event too; swallow that one so the panel does not
+  // spring open every time the pill is moved
+  pill.addEventListener("click", () => {
+    if (pillMoved) {
+      pillMoved = false;
+      return;
+    }
+    setOpen(true);
+  });
   close.addEventListener("click", () => setOpen(false));
 
   list.addEventListener("click", (event) => {
@@ -461,8 +600,12 @@ export const mountOverlay = (target?: Element): OverlayHandle => {
 
   document.addEventListener("mousemove", onMove);
   document.addEventListener("mouseup", onUp);
+  document.addEventListener("mousemove", onPillMove);
+  document.addEventListener("mouseup", onPillUp);
   document.addEventListener("keydown", onKeyDown);
 
+  applyTheme();
+  applyPosition();
   panel.hidden = !open;
   if (open) applyHeight(height);
 
@@ -474,6 +617,8 @@ export const mountOverlay = (target?: Element): OverlayHandle => {
       unsubscribe();
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
+      document.removeEventListener("mousemove", onPillMove);
+      document.removeEventListener("mouseup", onPillUp);
       document.removeEventListener("keydown", onKeyDown);
       host.remove();
     },

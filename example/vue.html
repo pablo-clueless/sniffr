@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>sniffr — Vue</title>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "vue": "https://esm.sh/vue@3",
+          "zustand/vanilla": "https://esm.sh/zustand@5/vanilla",
+          "zod": "https://esm.sh/zod@4"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="module">
+      import { computed, createApp, defineComponent, h, onMounted, ref } from "vue";
+
+      import { sniffr } from "../dist/index.js";
+      import { SniffrOverlay, useSniffr } from "../dist/vue.js";
+      import { ENDPOINT, page, schemas } from "./shared.js";
+
+      page("sniffr — Vue");
+
+      sniffr({ overlay: false, schemas });
+
+      const App = defineComponent({
+        setup() {
+          const state = useSniffr();
+          const calls = ref(0);
+
+          const load = async () => {
+            await fetch(ENDPOINT);
+            calls.value += 1;
+          };
+
+          onMounted(() => void load());
+
+          const summary = computed(() => {
+            const endpoints = Object.values(state.value.models);
+            const breaking = endpoints
+              .flatMap((model) => model.changes)
+              .filter((change) => change.severity === "breaking");
+            return `${calls.value} request(s) · ${endpoints.length} endpoint(s) · ${breaking.length} breaking`;
+          });
+
+          return () =>
+            h("main", [
+              h("h1", "sniffr — Vue"),
+              h("p", [
+                "Fetches ",
+                h("code", ENDPOINT),
+                " and diffs the response against a zod schema. Drag the pill to any corner.",
+              ]),
+              h("p", summary.value),
+              h("button", { type: "button", onClick: () => void load() }, "Fetch again"),
+              h(SniffrOverlay),
+            ]);
+        },
+      });
+
+      createApp(App).mount("#root");
+    </script>
+  </body>
+</html>
