@@ -166,6 +166,35 @@ describe("parseArgs", () => {
   it("rejects an unknown option", () => {
     expect(() => parseArgs(["--nope"])).toThrow("unknown option: --nope");
   });
+
+  it("defaults --fail-on to breaking", () => {
+    expect(parseArgs(["a.har"]).failOn).toBe("breaking");
+  });
+
+  it("accepts each --fail-on level", () => {
+    expect(parseArgs(["--fail-on", "additive"]).failOn).toBe("additive");
+    expect(parseArgs(["--fail-on", "none"]).failOn).toBe("none");
+  });
+
+  it("rejects an unknown --fail-on level", () => {
+    expect(() => parseArgs(["--fail-on", "loud"])).toThrow("--fail-on must be");
+  });
+});
+
+describe("run — the --fail-on threshold", () => {
+  const ADDITIVE = "test/fixtures/additive.json";
+
+  it("passes an additive-only run by default", async () => {
+    expect(await run([ADDITIVE, "--schemas", SCHEMAS])).toBe(0);
+  });
+
+  it("fails an additive-only run when asked to", async () => {
+    expect(await run([ADDITIVE, "--schemas", SCHEMAS, "--fail-on", "additive"])).toBe(1);
+  });
+
+  it("never fails at level none, even with breaking changes", async () => {
+    expect(await run([HAR, "--schemas", SCHEMAS, "--fail-on", "none"])).toBe(0);
+  });
 });
 
 describe("run — exit codes (task 3.1 acceptance)", () => {

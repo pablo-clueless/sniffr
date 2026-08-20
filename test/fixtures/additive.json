@@ -1,0 +1,1 @@
+{ "url": "/api/health", "body": { "ok": true, "uptimeSeconds": 1200 } }
