@@ -3,10 +3,18 @@ import { defaultStorage } from "../runtime/persist.js";
 
 export const PREFERENCES_KEY = "sniffr:ui:v1";
 
+export type OverlayTheme = "system" | "dark" | "light";
+
+export type OverlayPosition = "bottom-left" | "bottom-right" | "top-left" | "top-right";
+
+const POSITIONS = new Set<string>(["bottom-left", "bottom-right", "top-left", "top-right"]);
+
 export type OverlayPreferences = {
-  readonly open: boolean;
-  readonly height: number;
   readonly filter: string;
+  readonly height: number;
+  readonly open: boolean;
+  readonly theme: OverlayTheme;
+  readonly position: OverlayPosition;
 };
 
 // Panel chrome is a preference, not an observation: it lives under its own key
@@ -41,6 +49,11 @@ export const readPreferences = (
         ? value.height
         : defaults.height,
     filter: typeof value.filter === "string" ? value.filter : defaults.filter,
+    theme: value.theme === "dark" || value.theme === "light" ? value.theme : defaults.theme,
+    position:
+      typeof value.position === "string" && POSITIONS.has(value.position)
+        ? (value.position as OverlayPosition)
+        : defaults.position,
   };
 };
 

@@ -2,7 +2,7 @@ import { createStore } from "zustand/vanilla";
 
 import type { PersistedModel, StorageLike } from "./persist.js";
 import { endpointKey, normalizeRoute } from "../core/route.js";
-import { schemaSides, toShape } from "../core/from-zod.js";
+import { schemaSides, toShape } from "../core/compile.js";
 import { hashSchemas } from "../core/serialize.js";
 import { asRequest, diff } from "../core/diff.js";
 import type { Change } from "../core/diff.js";

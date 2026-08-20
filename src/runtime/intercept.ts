@@ -33,8 +33,20 @@ const methodOf = (input: RequestInfo | URL, init?: RequestInit): string => {
   return "GET";
 };
 
+// A relative url has to be resolved against the page before core sees it, or
+// ./api/users fetched from /admin/ is indistinguishable from /api/users and the
+// schema keyed on the real path never matches. core/route.ts cannot do this
+// itself — it must stay runnable in node (HANDOFF 7.1).
+const absolute = (raw: string): string => {
+  try {
+    return typeof location === "undefined" ? raw : new URL(raw, location.href).toString();
+  } catch {
+    return raw;
+  }
+};
+
 const urlOf = (input: RequestInfo | URL): string => {
-  if (typeof input === "string") return input;
+  if (typeof input === "string") return absolute(input);
   if (input instanceof URL) return input.toString();
   if (typeof Request !== "undefined" && input instanceof Request) return input.url;
   return String(input);
@@ -136,7 +148,7 @@ const interceptXhr = (options: InterceptOptions): (() => void) => {
     password?: string | null,
   ): void {
     try {
-      requests.set(this, { method, url: String(url) });
+      requests.set(this, { method, url: absolute(String(url)) });
     } catch {
       /* ignore */
     }

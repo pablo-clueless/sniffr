@@ -266,6 +266,153 @@ describe("overlay — adjustable height", () => {
   });
 });
 
+describe("overlay — the pill can be moved", () => {
+  const dragPill = (toX: number, toY: number) => {
+    pill().dispatchEvent(new MouseEvent("mousedown", { clientX: 20, clientY: 740, bubbles: true }));
+    document.dispatchEvent(new MouseEvent("mousemove", { clientX: toX, clientY: toY }));
+    document.dispatchEvent(new MouseEvent("mouseup", { clientX: toX, clientY: toY }));
+  };
+
+  it("starts bottom-left", () => {
+    overlay = mountOverlay();
+    expect(host()!.getAttribute("data-position")).toBe("bottom-left");
+  });
+
+  it("snaps to whichever corner it was dropped nearest", () => {
+    overlay = mountOverlay();
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    dragPill(width - 20, height - 20);
+    expect(host()!.getAttribute("data-position")).toBe("bottom-right");
+
+    dragPill(20, 20);
+    expect(host()!.getAttribute("data-position")).toBe("top-left");
+
+    dragPill(width - 20, 20);
+    expect(host()!.getAttribute("data-position")).toBe("top-right");
+  });
+
+  it("anchors each corner in the stylesheet", () => {
+    overlay = mountOverlay();
+    const style = shadow()!.querySelector("style")!.textContent ?? "";
+    for (const corner of ["bottom-left", "bottom-right", "top-left", "top-right"]) {
+      expect(style).toContain(`:host([data-position="${corner}"]) .pill`);
+    }
+  });
+
+  it("does not open the panel when the pill was dragged", () => {
+    overlay = mountOverlay();
+    dragPill(900, 100);
+    pill().click();
+    expect(panel().hidden).toBe(true);
+  });
+
+  it("still opens on the next real click", () => {
+    overlay = mountOverlay();
+    dragPill(900, 100);
+    pill().click();
+    pill().click();
+    expect(panel().hidden).toBe(false);
+  });
+
+  it("treats a movement below the threshold as a click, not a drag", () => {
+    overlay = mountOverlay();
+    dragPill(21, 741);
+    expect(host()!.getAttribute("data-position")).toBe("bottom-left");
+    pill().click();
+    expect(panel().hidden).toBe(false);
+  });
+
+  it("remembers where it was left", () => {
+    overlay = mountOverlay();
+    dragPill(window.innerWidth - 20, 20);
+    overlay.unmount();
+
+    overlay = mountOverlay();
+    expect(host()!.getAttribute("data-position")).toBe("top-right");
+  });
+
+  it("stops moving after unmount", () => {
+    overlay = mountOverlay();
+    overlay.unmount();
+    overlay = null;
+    expect(() =>
+      document.dispatchEvent(new MouseEvent("mousemove", { clientX: 500, clientY: 500 })),
+    ).not.toThrow();
+  });
+});
+
+describe("overlay — typography", () => {
+  it("asks for Fira Code first, with a monospace fallback", () => {
+    overlay = mountOverlay();
+    const style = shadow()!.querySelector("style")!.textContent ?? "";
+    expect(style).toMatch(/--font:\s*"Fira Code"/);
+    expect(style).toContain("monospace");
+  });
+
+  it("fetches Fira Code with display=swap, and nothing it does not use", () => {
+    overlay = mountOverlay();
+    const style = shadow()!.querySelector("style")!.textContent ?? "";
+
+    expect(style).toContain("family=Fira+Code");
+    expect(style).toContain("display=swap");
+    expect(style).not.toContain("Montserrat");
+  });
+
+  it("applies the stack to every element, from one variable", () => {
+    overlay = mountOverlay();
+    const style = shadow()!.querySelector("style")!.textContent ?? "";
+    expect(style).toMatch(/\*\s*\{[^}]*font-family:\s*var\(--font\)/);
+  });
+});
+
+describe("overlay — theme", () => {
+  const themeButton = () => pick(".theme")!;
+
+  it("follows the system by default", () => {
+    overlay = mountOverlay();
+    expect(host()!.getAttribute("data-theme")).toBe("system");
+    expect(themeButton().textContent).toBe("auto");
+  });
+
+  it("cycles system -> light -> dark -> system", () => {
+    openPanel();
+
+    themeButton().click();
+    expect(host()!.getAttribute("data-theme")).toBe("light");
+
+    themeButton().click();
+    expect(host()!.getAttribute("data-theme")).toBe("dark");
+
+    themeButton().click();
+    expect(host()!.getAttribute("data-theme")).toBe("system");
+  });
+
+  it("remembers the choice", () => {
+    openPanel();
+    themeButton().click();
+    overlay!.unmount();
+
+    overlay = mountOverlay();
+    expect(host()!.getAttribute("data-theme")).toBe("light");
+  });
+
+  it("ships a light palette, and lets an explicit choice beat the media query", () => {
+    overlay = mountOverlay();
+    const style = shadow()!.querySelector("style")!.textContent ?? "";
+
+    expect(style).toMatch(/@media \(prefers-color-scheme: light\)/);
+    expect(style).toMatch(/:host\(:not\(\[data-theme="dark"\]\)\)/);
+    expect(style).toMatch(/:host\(\[data-theme="light"\]\)/);
+  });
+
+  it("labels the control for screen readers", () => {
+    overlay = mountOverlay();
+    expect(themeButton().getAttribute("aria-label")).toBe("Theme: system");
+  });
+});
+
 describe("overlay — remembered panel state", () => {
   it("reopens in the state it was left in", () => {
     openPanel();
