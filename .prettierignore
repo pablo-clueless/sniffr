@@ -30,3 +30,6 @@ dist-ssr
 # Generated
 pnpm-lock.yaml
 coverage
+
+# nested example app, has its own tooling
+example/sniffr-example
