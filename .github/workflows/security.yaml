@@ -1,0 +1,71 @@
+name: Security
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+  schedule:
+    # Monday 06:00 UTC, so newly disclosed advisories surface without a push
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+  security-events: write # required to upload SARIF to code scanning
+
+jobs:
+  snyk:
+    name: Snyk
+    runs-on: ubuntu-latest
+    # SNYK_TOKEN is not exposed to pull requests from forks, so the step would
+    # fail for reasons the contributor cannot fix. Those PRs still run CI.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Setup Snyk CLI
+        uses: snyk/actions/setup@master
+
+      # Dependencies. Exit 1 means high/critical findings and is meant to fail
+      # the build; anything above 1 is a tool error and fails it just as loudly.
+      - name: Snyk Open Source
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: snyk test --all-projects --severity-threshold=high --sarif-file-output=snyk-oss.sarif
+
+      # hashFiles is empty when the scan errored out before writing SARIF, which
+      # would otherwise fail this step on a missing path.
+      - name: Upload Open Source results
+        if: always() && hashFiles('snyk-oss.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: snyk-oss.sarif
+          category: snyk-oss
+
+      # Static analysis of our own source. Findings (exit 1) are reported rather
+      # than blocking, but a real tool error -- Snyk Code not enabled for the
+      # org, auth failure -- surfaces as a warning instead of being swallowed.
+      - name: Snyk Code
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          snyk code test --severity-threshold=high --sarif-file-output=snyk-code.sarif && code=0 || code=$?
+          if [ "$code" -gt 1 ]; then
+            echo "::warning::snyk code test exited $code without producing SARIF; see the log above (Snyk Code may not be enabled for this org)"
+          fi
+
+      - name: Upload Snyk Code results
+        if: always() && hashFiles('snyk-code.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: snyk-code.sarif
+          category: snyk-code
