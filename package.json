@@ -1,6 +1,6 @@
 {
   "name": "@pablo-clueless/sniffr",
-  "version": "0.1.6",
+  "version": "1.0.0",
   "description": "Watch live API responses, model what they actually return, and diff that against your zod schemas.",
   "license": "MIT",
   "author": "smsnmicheal",
@@ -69,7 +69,7 @@
   "homepage": "https://github.com/pablo_clueless/sniffr#readme",
   "scripts": {
     "prebuild": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
-    "build": "tsdown && node scripts/postbuild.mjs && node scripts/check-bundle.mjs",
+    "build": "node api.js && tsdown && node scripts/postbuild.mjs && node scripts/check-bundle.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
