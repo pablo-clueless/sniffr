@@ -1,4 +1,4 @@
-import { sniffr } from "@pablo_clueless/sniffr";
+import { sniffr } from "@pablo-clueless/sniffr";
 import { z } from "zod";
 
 export const API = "https://jsonplaceholder.typicode.com";
