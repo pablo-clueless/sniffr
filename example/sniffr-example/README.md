@@ -8,7 +8,7 @@ pnpm dev
 ```
 
 `predev` builds the parent package first. sniffr is linked as a directory
-(`"@pablo_clueless/sniffr": "link:../.."`), so the app imports the **built**
+(`"@pablo-clueless/sniffr": "link:../.."`), so the app imports the **built**
 `dist/` through the package's real exports map — the same path an npm consumer
 takes, `"use client"` and all. Rebuild the parent after changing its source:
 
